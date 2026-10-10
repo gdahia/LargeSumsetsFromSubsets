@@ -1,0 +1,21 @@
+{
+  "challenge_module": "Challenge",
+  "solution_module": "Solution",
+  "theorem_names": [
+    "LargeSumsetsFromSubsets.exists_subset_min_lt_expect_card_bltSample_add",
+    "LargeSumsetsFromSubsets.removalConst_pos",
+    "LargeSumsetsFromSubsets.exists_subset_card_sdiff_le_forall_add_ne",
+    "LargeSumsetsFromSubsets.exists_subset_card_sdiff_le_card_add_le",
+    "LargeSumsetsFromSubsets.exists_subset_card_le_mul_le_card_add"
+  ],
+  "definition_names": [
+    "LargeSumsetsFromSubsets.bltCap",
+    "LargeSumsetsFromSubsets.bltRho",
+    "LargeSumsetsFromSubsets.bltDelta",
+    "LargeSumsetsFromSubsets.bltAlpha",
+    "LargeSumsetsFromSubsets.bltSampleConst",
+    "LargeSumsetsFromSubsets.originalBltConstant"
+  ],
+  "permitted_axioms": ["propext", "Quot.sound", "Classical.choice"],
+  "enable_nanoda": true
+}
