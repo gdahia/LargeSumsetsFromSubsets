@@ -53,18 +53,22 @@ def bltSampleConst (K ε : ℝ) : ℝ := 36 / (ε * bltAlpha K ε)
 
 variable {K ε : ℝ}
 
+/-- The cap is at least `100`. -/
 lemma hundred_le_bltCap (hK : 1 ≤ K) : 100 ≤ bltCap K := by
   unfold bltCap
-  nlinarith [mul_le_mul (mul_le_mul hK hK zero_le_one (by linarith)) hK zero_le_one
-    (by nlinarith)]
+  linarith [one_le_pow₀ (n := 3) hK]
 
+/-- The cap is positive. -/
 lemma bltCap_pos (hK : 1 ≤ K) : 0 < bltCap K := by
   linarith [hundred_le_bltCap hK]
 
-lemma bltRho_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltRho K ε := by
-  unfold bltRho
-  have := bltCap_pos hK
-  positivity
+/-- The deletion price is positive. -/
+lemma bltPenalty_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltPenalty K ε :=
+  div_pos (mul_pos (by norm_num) (bltCap_pos hK)) hε
+
+/-- The deletion proportion is positive. -/
+lemma bltRho_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltRho K ε :=
+  div_pos (pow_pos hε 2) (mul_pos (by norm_num) (bltCap_pos hK))
 
 /-- `bltRho` is far smaller than `ε`, which is what makes the cleanup steps cheap. -/
 lemma bltRho_le (hK : 1 ≤ K) (hε : 0 < ε) (hε1 : ε ≤ 1) : bltRho K ε ≤ ε / 1000 := by
@@ -73,67 +77,68 @@ lemma bltRho_le (hK : 1 ≤ K) (hε : 0 < ε) (hε1 : ε ≤ 1) : bltRho K ε �
   nlinarith [hundred_le_bltCap hK]
 
 /-- The doubling constant handed to the arithmetic removal lemma is nonnegative. -/
-private lemma removalDoubling_nonneg (hK : 1 ≤ K) : (0 : ℝ) ≤ 16 * bltCap K ^ 7 := by
-  nlinarith [pow_pos (bltCap_pos hK) 7]
+private lemma removalDoubling_nonneg (hK : 1 ≤ K) : (0 : ℝ) ≤ 16 * bltCap K ^ 7 :=
+  mul_nonneg (by norm_num) (pow_nonneg (bltCap_pos hK).le 7)
 
+/-- The density parameter is positive. -/
 lemma bltDelta_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltDelta K ε := by
   unfold bltDelta
   apply lt_min (lt_min (by norm_num) (div_pos (bltRho_pos hK hε) (by norm_num)))
   exact ArithmeticRemoval.removalConst_pos (removalDoubling_nonneg hK)
     (div_pos (bltRho_pos hK hε) (bltCap_pos hK))
 
+/-- The density parameter is at most `1 / 2`. -/
 lemma bltDelta_le_half : bltDelta K ε ≤ 1 / 2 :=
   (min_le_left _ _).trans (min_le_left _ _)
 
+/-- The density parameter is at most an eighth of the deletion proportion. -/
 lemma eight_mul_bltDelta_le_bltRho : 8 * bltDelta K ε ≤ bltRho K ε := by
-  have h := (min_le_left (min (1 / 2) (bltRho K ε / 8))
-    (ArithmeticRemoval.removalConst (16 * bltCap K ^ 7) (bltRho K ε / bltCap K))).trans
-    (min_le_right (1 / 2) (bltRho K ε / 8))
-  unfold bltDelta
-  linarith [h]
+  have : bltDelta K ε ≤ bltRho K ε / 8 := (min_le_left _ _).trans (min_le_right _ _)
+  linarith
 
-lemma bltDelta_le_removal :
+/-- The density parameter is below the threshold of the arithmetic removal lemma. -/
+lemma bltDelta_le_removalConst :
     bltDelta K ε ≤ ArithmeticRemoval.removalConst (16 * bltCap K ^ 7) (bltRho K ε / bltCap K) :=
   min_le_right _ _
 
-lemma bltAlpha_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltAlpha K ε := by
-  unfold bltAlpha
-  have := bltDelta_pos hK hε
-  positivity
+/-- The popularity threshold is positive. -/
+lemma bltAlpha_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltAlpha K ε :=
+  div_pos (bltDelta_pos hK hε) (by linarith)
 
-lemma bltSampleConst_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltSampleConst K ε := by
-  unfold bltSampleConst
-  have := bltAlpha_pos hK hε
-  positivity
+/-- The sampling constant is positive. -/
+lemma bltSampleConst_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltSampleConst K ε :=
+  div_pos (by norm_num) (mul_pos hε (bltAlpha_pos hK hε))
 
 /-- The defining relation between the sampling constant and the popularity threshold. -/
 lemma mul_bltSampleConst_mul_bltAlpha (hK : 1 ≤ K) (hε : 0 < ε) :
     ε * (bltSampleConst K ε * bltAlpha K ε) = 36 := by
   unfold bltSampleConst
-  have hα := (bltAlpha_pos hK hε).ne'
-  have hε0 := hε.ne'
-  field_simp
+  field_simp [(bltAlpha_pos hK hε).ne']
+
+/-- A product `κ` of sample sizes above `bltSampleConst K ε * m` satisfies
+`36 * m ≤ ε * bltAlpha K ε * κ`. -/
+lemma thirtySix_mul_le_mul_bltAlpha_mul (hK : 1 ≤ K) (hε : 0 < ε) {m κ : ℝ}
+    (hκ : bltSampleConst K ε * m ≤ κ) : 36 * m ≤ ε * (bltAlpha K ε * κ) := by
+  rw [← mul_bltSampleConst_mul_bltAlpha hK hε]
+  linarith [mul_le_mul_of_nonneg_left hκ (mul_pos hε (bltAlpha_pos hK hε)).le]
 
 /-- The product of the sampling constant and the density parameter. -/
 lemma mul_bltDelta_mul_bltSampleConst (hK : 1 ≤ K) (hε : 0 < ε) :
     ε * (bltDelta K ε * bltSampleConst K ε) = 1296 * K := by
   unfold bltSampleConst bltAlpha
-  have hδ := (bltDelta_pos hK hε).ne'
-  have hK0 : K ≠ 0 := by linarith
-  field_simp
+  field_simp [(bltDelta_pos hK hε).ne', (by positivity : K ≠ 0)]
   ring
 
 /-- Division-free form of the definition of `bltAlpha`. -/
 lemma mul_bltAlpha_eq_bltDelta (hK : 1 ≤ K) : 36 * (K * bltAlpha K ε) = bltDelta K ε := by
   unfold bltAlpha
-  have hK0 : K ≠ 0 := by linarith
-  field_simp
+  field_simp [(by positivity : K ≠ 0)]
 
+/-- The penalty of deleting a `bltRho` proportion of elements is a small multiple of `ε`. -/
 lemma bltPenalty_mul_bltRho (hK : 1 ≤ K) (hε : 0 < ε) :
     bltPenalty K ε * bltRho K ε = ε / 250 := by
   unfold bltPenalty bltRho
-  have h := (bltCap_pos hK).ne'
-  field_simp
+  field_simp [(bltCap_pos hK).ne']
   ring
 
 end

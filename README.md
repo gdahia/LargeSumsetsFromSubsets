@@ -1,139 +1,166 @@
-# Large sumsets from subsets
+# Large sumsets from medium-sized subsets
 
-Lean 4 proofs of two theorems on subsets with large sumset in an abelian group: Theorem 2 of
-Bollobás, Leader and Tiba,
-[*Large sumsets from medium-sized subsets*](https://arxiv.org/abs/2206.09366), and Theorem 1.1 of
-Fox, Luo, Pham and Zhou,
-[*Small subsets with large sumset: beyond the Cauchy–Davenport bound*](https://arxiv.org/abs/2210.07196).
-The proof of the first uses an arithmetic removal lemma for sets of small doubling and a variant
-of Shao's [almost-all Balog–Szemerédi–Gowers theorem](https://arxiv.org/abs/1811.10707), which
-are also proved here. The first proof is copied from
-[DenseSetsWithoutLargeSumsets](https://github.com/gdahia/DenseSetsWithoutLargeSumsets) and the
-second from
-[CountingSetsWithGivenDoublingViaDimension](https://github.com/gdahia/CountingSetsWithGivenDoublingViaDimension).
+Lean 4 formalization of Béla Bollobás, Imre Leader and Marius Tiba,
+[*Large sumsets from medium-sized subsets*](https://arxiv.org/abs/2206.09366). In an abelian
+group, a few random points of large subsets $A_0 \subseteq A$ and $B_0 \subseteq B$ already have
+a sumset of almost the size of $A_0 + B_0$ (Theorem 2). In $\mathbb{Z}_p$, for sets of comparable
+sizes with $|A| + |B|$ bounded away from $p$, subsets with $c_1$ and $c_2$ elements reach the
+Cauchy–Davenport bound $|A| + |B| - 1$ as soon as $c_1 c_2 \ge c \max(|A|, |B|)$ (Theorem 1).
+
+Theorem 2 is proved without the theorem of Shao that the paper uses. The proof instead applies
+the arithmetic removal lemma to the sets of a minimizing pair of subsets, and both the removal
+lemma and the cleanup theorem it gives are proved here. Theorems 1, 6 and 8 are proved from
+Theorems 4 and 5 of the paper, which the paper quotes from other works. These two theorems are
+not formalized: they are the hypotheses `CauchyDavenportStability` and
+`FewTranslatesNearIntervals` of the statements.
 
 ## Results
 
-All sets are finite subsets of an abelian group, and `#A` is the number of elements of `A`. The
-declarations are in the namespace `LargeSumsetsFromSubsets`.
+All sets are finite, $|A|$ is the number of elements of $A$, and $\mathbb{Z}_p$ is `ZMod p` for a
+prime $p$. All names below are in the namespace `LargeSumsetsFromSubsets`.
 
-**Bollobás, Leader and Tiba, Theorem 2.** Let `σ > 0` and `ε > 0`, let `A` and `B` be nonempty,
-and let `1 ≤ c₁ ≤ #A` and `1 ≤ c₂ ≤ #B` satisfy `c₁ * c₂ > originalBltConstant σ ε * max #A #B`.
-There are `A₀ ⊆ A` and `B₀ ⊆ B` with `#A₀ > (1 - ε) * #A` and `#B₀ > (1 - ε) * #B` such that, for
-`c₁` points of `A₀` and `c₂` points of `B₀` chosen independently and uniformly at random, with
-repetitions allowed, the sets `A'` and `B'` of chosen points satisfy
+Theorem numbers are those of the paper.
 
-```
-𝔼 #(A' + B') > min ((1 - ε) * #(A₀ + B₀)) (σ * #A₀) (σ * #B₀).
-```
+**Theorem 1** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add`, assuming Theorems 4
+and 5). For $\alpha, \beta > 0$ there is $c > 0$ such that if
+$A, B \subseteq \mathbb{Z}_p$ are nonempty with $\alpha |B| \le |A| \le \alpha^{-1} |B|$ and
+$|A| + |B| \le (1 - \beta) p$, then for all integers $1 \le c_1 \le |A|$ and $1 \le c_2 \le |B|$
+with $c_1 c_2 \ge c \max(|A|, |B|)$ there are $A' \subseteq A$ and $B' \subseteq B$ with
+$|A'| = c_1$, $|B'| = c_2$ and
 
-This is `exists_medium_sized_subsets_with_large_sumset_sample`. The sets of chosen points are
-`bltSample A₀ f` and `bltSample B₀ g`, the sets of values of `f : Fin c₁ → A₀` and
-`g : Fin c₂ → B₀`, and the expectation is Mathlib's `Finset.expect` over all pairs `(f, g)`. There
-are two more forms:
+$$|A' + B'| \ge |A| + |B| - 1.$$
 
-- `exists_medium_sized_subsets_with_large_sumset_core`, for `K ≥ 1` and `0 < ε ≤ 1`, with the
-  constant `bltSampleConst K ε`, subsets containing at least `(1 - ε / 4) * #A` and
-  `(1 - ε / 4) * #B` elements, and non-strict inequalities;
-- `exists_medium_sized_subsets_with_large_sumset_subsets`, which gives `A' ⊆ A'' ⊆ A` and
-  `B' ⊆ B'' ⊆ B` with `#A'' ≥ (1 - ε) * #A`, `#B'' ≥ (1 - ε) * #B`, at most
-  `bltConstant σ ε * √(max #A #B)` elements in each of `A'` and `B'`, and
-  `#(A' + B') ≥ min ((1 - ε) * #(A'' + B'')) (σ * #A'') (σ * #B'')`.
+**Theorem 2** (`exists_forall_exists_subset_min_lt_expect_card_add`). For
+$\sigma, \varepsilon > 0$ there is $c$ such that for nonempty subsets $A$ and $B$ of an abelian
+group and integers $1 \le c_1 \le |A|$, $1 \le c_2 \le |B|$ with $c_1 c_2 > c \max(|A|, |B|)$
+there are $A_0 \subseteq A$ and $B_0 \subseteq B$ with $|A_0| > (1 - \varepsilon) |A|$ and
+$|B_0| > (1 - \varepsilon) |B|$ such that, if $A'$ and $B'$ are the sets of $c_1$ and $c_2$
+points of $A_0$ and $B_0$ chosen independently and uniformly at random,
 
-**Arithmetic removal lemma.** Let `#(X + X) ≤ K * #X` and `A`, `B`, `C ⊆ X`. If `a + b = c` has at
-most `δ * #X ^ 2` solutions with `a ∈ A`, `b ∈ B`, `c ∈ C`, where `0 ≤ δ ≤ removalConst K ε`, then
-one can remove at most `ε * #X` elements from each of `A`, `B` and `C` so that no solution
-remains. This is `ArithmeticRemoval.arithmetic_removal`.
+$$\mathbb{E} |A' + B'| > \min\bigl((1 - \varepsilon) |A_0 + B_0|, \sigma |A_0|, \sigma |B_0|\bigr).$$
 
-**Cleanup theorem.** Let `X` and `Y` be nonempty with `#(X + Y) ≤ D * min #X #Y`, where `D ≥ 1`.
-If at most `δ * #X * #Y` pairs in `X ×ˢ Y` have their sum outside a set `P`, where
-`0 ≤ δ ≤ removalConst (16 * D ^ 7) (ρ / D)`, then there are `X₀ ⊆ X` and `Y₀ ⊆ Y`, each missing at
-most `ρ * min #X #Y` elements, with `#(X₀ + Y₀) ≤ #P + ρ * min #X #Y`. This is
-`Cleanup.exists_cleanup`. Shao's theorem assumes that the pairs with sum in `P` have few distinct
-sums. The theorem here assumes in addition that `X + Y` is small.
+**Theorem 6** (`exists_arithProg_card_symmDiff_le_of_expect_card_add_le`, assuming Theorem 4). For $\beta, \gamma > 0$ there is $\varepsilon > 0$ such that for $\alpha > 0$
+there is $c$ with the following property. If $A, B \subseteq \mathbb{Z}_p$ have at least two
+elements, $\alpha |B| \le |A| \le \alpha^{-1} |B|$, $|A| + |B| \le (1 - \beta) p$,
+$1 \le c_1 \le |A|$, $1 \le c_2 \le |B|$, $c_1 c_2 \ge c \max(|A|, |B|)$, and uniformly random
+subsets $A'$ and $B'$ of $A$ and $B$ with $c_1$ and $c_2$ elements satisfy
 
-**Fox, Luo, Pham and Zhou, Theorem 1.1.** Let `A` be nonempty with `#(A + A) = κ * #A`, and let
-`s ≥ 1`. Some `T ⊆ A` with at most `s` elements has `#(A + T) ≥ min (κ ^ (1 / 3)) s * #A / 14`.
-This is `exists_subset_card_add_ge`.
+$$\mathbb{E} |A' + B'| \le |A| + |B| - 1 + \varepsilon \min(|A|, |B|),$$
 
-The constants are explicit:
+then there are arithmetic progressions $P$ and $Q$ with the same nonzero common difference and
+$|A \mathbin{\triangle} P|, |B \mathbin{\triangle} Q| \le \gamma \min(|A|, |B|)$.
 
-- `ArithmeticRemoval.removalConst K ε` is `triangleRemovalBound (ε / (36 * (1 + K) ^ 2)) / 2`,
-  where `triangleRemovalBound` is the constant of the triangle removal lemma in Mathlib. It is of
-  tower type;
-- `bltCap K` is `100 * K ^ 3` and `bltRho K ε` is `ε ^ 2 / (1000 * bltCap K)`;
-- `bltDelta K ε` is the minimum of `1 / 2`, `bltRho K ε / 8` and
-  `removalConst (16 * bltCap K ^ 7) (bltRho K ε / bltCap K)`;
-- `bltAlpha K ε` is `bltDelta K ε / (36 * K)` and `bltSampleConst K ε` is
-  `36 / (ε * bltAlpha K ε)`;
-- `originalBltConstant σ ε` is `bltSampleConst (2 * max σ 1) (min ε 1 / 2)`;
-- `bltConstant σ ε` is `8 * (max 1 (originalBltConstant σ ε) + σ + 1) ^ 2`.
+**Theorem 8** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_image_range`,
+assuming Theorem 5). There is $\gamma > 0$ such that for $\alpha > 0$ there is $c$ with the following
+property. Let $X \subseteq I$ and $Y \subseteq J$, where $I$ and $J$ are intervals of
+$\mathbb{Z}_p$ with $m$ and $n$ elements, $m + n \le p$, $\alpha n \le m \le \alpha^{-1} n$ and
+$|I \setminus X|, |J \setminus Y| \le \gamma \min(m, n)$. For $1 \le c_1 \le |X|$ and
+$1 \le c_2 \le |Y|$ with $c_1 c_2 \ge c \max(|X|, |Y|)$ there are $X' \subseteq X$ and
+$Y' \subseteq Y$ with $c_1$ and $c_2$ elements and $|X' + Y'| \ge |X| + |Y| - 1$.
 
-[Challenge.lean](Challenge.lean) states the first form of the Bollobás–Leader–Tiba theorem, the
-arithmetic removal lemma, the positivity of `removalConst`, the cleanup theorem and the
-Fox–Luo–Pham–Zhou theorem with `sorry` placeholders. Its statements use Mathlib and eight
-definitions copied from the library: `removalConst`, `bltSample` and the six constants from
-`bltCap` to `originalBltConstant`. [Solution.lean](Solution.lean) proves the five statements from
-the library. The library and solution contain no `sorry`. In `comparator.json` the six constants
-are listed under `definition_names`, so the comparator checks their types and takes their values
-from the solution. It compares `removalConst` and `bltSample` in full.
+**Arithmetic removal lemma in a set of small doubling**
+(`exists_forall_exists_subset_card_sdiff_le_forall_add_ne`). For $K \ge 0$ and $\varepsilon > 0$
+there is $\delta > 0$ such that if $|X + X| \le K |X|$, $A, B, C \subseteq X$ and $a + b = c$ has
+at most $\delta |X|^2$ solutions with $a \in A$, $b \in B$, $c \in C$, then one can remove at most
+$\varepsilon |X|$ elements from each of $A$, $B$ and $C$ so that no solution remains.
 
-## Proof and files
+**Cleanup theorem** (`exists_forall_exists_subset_card_sdiff_le_card_add_le`). For
+$D \ge 1$ and $\rho > 0$ there is $\delta > 0$ such that if $X$ and $Y$ are nonempty,
+$|X + Y| \le D \min(|X|, |Y|)$ and at most $\delta |X| |Y|$ pairs of $X \times Y$ have their sum
+outside a set $P$, then one can remove at most $\rho \min(|X|, |Y|)$ elements from each of $X$ and
+$Y$ so that the remaining sets $X_0$ and $Y_0$ satisfy
+$|X_0 + Y_0| \le |P| + \rho \min(|X|, |Y|)$.
 
-*Arithmetic removal.* This is the argument of Král, Serra and Vena. Let `W = X ∪ (X + X)` and
-form the tripartite graph on three copies of `W` whose triangles are the triples
-`(u, u + a, u + c)` with `a ∈ A`, `c ∈ C` and `c - a ∈ B`. It has at most `#W` triangles for each
-solution of `a + b = c`, so the triangle removal lemma deletes few edges and leaves no triangle.
-An edge between two parts has a label, the difference of its endpoints. Remove from `A`, `B` and
-`C` the labels for which more than `#X / 4` edges were deleted. A remaining solution would give
-`#X` triangles, of which at most `3 * #X / 4` lose an edge.
+The hypotheses of Theorems 1, 6 and 8 are the following statements, quoted in the paper.
 
-*Cleanup.* Translate `X` and `Y` to contain `0` and let `Z` be the translate of `X + Y`. By the
-Plünnecke–Ruzsa inequality `#(Z + Z) ≤ 16 * D ^ 7 * #Z`. The pairs of `X ×ˢ Y` with sum outside
-`P` are the solutions of `a + b = c` with `a ∈ X`, `b ∈ Y` and `c ∈ (X + Y) \ P`. The arithmetic
-removal lemma inside `Z` removes few elements from the three sets, and the remaining parts of `X`
-and `Y` have all their sums in `P` or among the removed elements of `(X + Y) \ P`. The same file
-proves a second bound, `Cleanup.exists_covering`, with no hypothesis on `#(X + Y)`: after
-removing a `ρ` proportion of `X` and of `Y`, every remaining sum has at least `#X * #Y / 2`
-representations `p₁ + p₂ - p₃` with `p₁, p₂, p₃ ∈ P`, so the remaining sumset has at most
-`2 * #P ^ 3 / (#X * #Y)` elements.
+- `CauchyDavenportStability` is Theorem 4 of the paper, which the authors deduce from Theorem 21.8
+  of Grynkiewicz, *Structural additive theory*. For $\beta, \gamma > 0$ there is $\varepsilon > 0$
+  such that if $A, B \subseteq \mathbb{Z}_p$ have at least two elements,
+  $|A| + |B| \le (1 - \beta) p$ and $|A + B| \le |A| + |B| - 1 + \varepsilon \min(|A|, |B|)$, then
+  $A$ and $B$ lie in arithmetic progressions $P$ and $Q$ with the same common difference and
+  $|P \setminus A|, |Q \setminus B| \le \gamma \min(|A|, |B|)$.
+- `FewTranslatesNearIntervals` is Theorem 5 of the paper, Theorem 31 of Bollobás, Leader and
+  Tiba, [*Large sumsets from small subsets*](https://arxiv.org/abs/2204.07559). For $\beta > 0$
+  there is $\gamma > 0$ such that for $\alpha > 0$ there is $c$ with the following property. If
+  $I$ and $J$ are intervals of $\mathbb{Z}_p$ with $m$ and $n$ elements,
+  $\alpha n \le m \le \alpha^{-1} n$, $m + n \le (1 - \beta) p$, and $B \subseteq J$ contains the
+  endpoints of $J$ and misses at most $\gamma \min(m, n)$ of its points, then there are sets
+  $F_0, \dots, F_k \subseteq B$ with at most $c$ elements such that every $A$ with
+  $|A \mathbin{\triangle} I| \le \gamma \min(m, n)$ satisfies
+  $|A| + |B| - 1 \le \mathbb{E}_i |A + F_i|$. The definition states this inequality as
+  $(k + 1)(|A| + |B| - 1) \le \sum_i |A + F_i|$ in $\mathbb{N}$.
 
-*Bollobás, Leader and Tiba.* Let `K ≥ 1` and `0 < ε ≤ 1`, and put `D = bltCap K` and
-`Λ = 4 * D / ε`. Choose nonempty `X ⊆ A` and `Y ⊆ B` minimizing
-`min (#(X + Y)) (D * #X) (D * #Y) + Λ * (#(A \ X) + #(B \ Y))`. The second term shows that `X` and
-`Y` contain all but an `ε / 4` proportion of `A` and `B`. A sum with `r` representations lies in
-the sumset of the two samples with probability at least
-`r * c₁ * c₂ / (9 * #X * #Y + r * c₁ * c₂)`, by a second-moment estimate. Suppose that the
-expected size of the sumset of the samples is less than
-`min ((1 - ε) * #(X + Y)) (K * #X) (K * #Y)`. Then the set `P` of sums with at least
-`bltAlpha K ε * min #X #Y` representations has fewer than `(1 - ε / 2) * #(X + Y)` and fewer than
-`2 * K * min #X #Y` elements, and at most `bltDelta K ε * #X * #Y` pairs have their sum outside
-`P`. If `#(X + Y) ≤ D * min #X #Y`, the cleanup theorem gives a pair of subsets with smaller
-value of the minimized quantity. Otherwise the covering bound does. Both contradict the choice of
-`X` and `Y`. The theorem for `σ > 0` and `ε > 0` is the case `K = 2 * max σ 1` with `min ε 1 / 2`
-in place of `ε`.
+[Challenge.lean](Challenge.lean) states these six results under the library names with a prime, with
+`sorry` placeholders, in terms of Mathlib and of the definitions `CauchyDavenportStability` and
+`FewTranslatesNearIntervals`. [Solution.lean](Solution.lean) proves each statement by the library
+theorem. The library and the solution contain no `sorry`, and the theorems depend on no axioms
+other than `propext`, `Classical.choice` and `Quot.sound`.
 
-*Fox, Luo, Pham and Zhou.* Let `C = A + T` have fewer than `κ ^ (1 / 3) * #A / 14` elements.
-Suppose that for every `b ∈ A` fewer than `#A / 14` elements `a ∈ A` have `a + b ∉ C`. Then for
-all `x, y ∈ A` at least `11 * #A ^ 2 / 14` pairs `(a, a')` in `A ×ˢ A` have `a + x`, `a + a'` and
-`a' + y` in `C`, and `x + y = (a + x) - (a + a') + (a' + y)`. Counting triples of elements of `C`
-gives `#(A + A) * (11 * #A ^ 2 / 14) ≤ #C ^ 3`, which is false. So some `b ∈ A` has
-`#(A + insert b T) ≥ #(A + T) + #A / 14`, and the theorem follows by induction on `s`.
+The library has further statements. The main ones are the following.
+
+| Declaration | Statement |
+| --- | --- |
+| `exists_subset_min_lt_expect_card_add` | Theorem 2 with the explicit constant `originalBltConstant σ ε` |
+| `exists_subset_min_le_expectSumset` | Theorem 2 for $K \ge 1$ and $0 < \varepsilon \le 1$, with the constant `bltSampleConst K ε` and subsets containing all but an $\varepsilon / 4$ proportion of $A$ and $B$ |
+| `exists_subset_card_le_mul_sqrt_min_le_card_add` | A deterministic form of Theorem 2 with $c_1 = c_2$ of order $\sqrt{\max(\|A\|, \|B\|)}$ and the constant `bltConstant σ ε` |
+| `ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne` | The removal lemma with the threshold `removalConst K ε`, a multiple of Mathlib's `triangleRemovalBound` |
+| `Cleanup.exists_subset_card_sdiff_le_card_add_le` | The cleanup theorem with the threshold `removalConst (16 * D ^ 7) (ρ / D)` |
+| `exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_Ico` | Theorem 8 of the paper for intervals of integers |
+| `exists_interval_ends` | Lemma 9 of the paper: the decomposition of $\mathbb{Z}_p$ into end and middle intervals |
+| `exists_subset_two_mul_card_le_card_add_sdiff`, `exists_subsets_min_le_card_biUnion_add_sdiff` | Lemma 10 and Corollary 11 of the paper |
+| `exists_lt_disjoint_image_add_arithProg` | Lemma 12 of the paper, for one point |
+| `exists_eq_arithProg_one_of_card_inter_arithProg_one` | An arithmetic progression of $\mathbb{Z}_p$ with at most $11L/10$ elements sharing $9L/10$ points with an interval of length $L$, $20 \le L \le p / 8$, is an interval |
+| `exists_fewTranslates_int` | `FewTranslatesNearIntervals` for intervals of integers |
+| `mul_expect_card_add_le_expect_powersetCard` | Uniformly random $c$-subsets dominate $c/2$ independent samples from a subset containing all but a $\mu$ proportion, up to the factor $(1 - 2\mu)^2$ |
+
+The proofs of Theorems 1, 6 and 8 follow the paper. Several steps that the paper states without
+proof are proved here: the comparison of random subsets with independent samples, the fact that a
+progression close to an interval is an interval, the reduction of the residue classes in the proof
+of Theorem 8 to sets containing the endpoints of their intervals, as Theorem 5 requires, and the
+passage from intervals of $\mathbb{Z}_p$ to intervals of integers.
+The paper's proof of Theorem 2 iterates Shao's theorem on a decreasing sequence of pairs of
+subsets. Here one pair of subsets minimizes `min |X + Y| (D |X|) (D |Y|) + Λ (|A \ X| + |B \ Y|)`;
+if the conclusion failed for it, the popular sums would be few, and the cleanup theorem, or an
+elementary covering bound when $|X + Y|$ is large, would give a pair with a smaller value. The
+removal lemma is proved by the argument of Král, Serra and Vena from the triangle removal lemma of
+Mathlib, so the constants of Theorems 2 and 5 are of tower type.
+
+## Files
 
 | Files in `LargeSumsetsFromSubsets/` | Contents |
 | --- | --- |
-| `ArithmeticRemoval/TripartiteGraph.lean` | The tripartite graph of the equation `a + b = c` |
-| `ArithmeticRemoval.lean` | `removalConst` and the arithmetic removal lemma |
+| `ArithmeticRemoval/TripartiteGraph.lean`, `ArithmeticRemoval.lean` | The tripartite graph of $a + b = c$ and the removal lemma |
 | `Cleanup.lean` | The cleanup theorem and the covering bound |
-| `MediumSizedSubsets/Constants.lean` | The constants from `bltCap` to `bltSampleConst` |
-| `MediumSizedSubsets/Sampling.lean` | `bltSample` and the probability that a sum is sampled |
-| `MediumSizedSubsets/Potential.lean` | The minimizing pair `(X, Y)` |
-| `MediumSizedSubsets.lean` | The three forms of the Bollobás–Leader–Tiba theorem |
-| `FewTranslates.lean` | The Fox–Luo–Pham–Zhou theorem |
+| `MediumSizedSubsets/Constants.lean`, `MediumSizedSubsets/Sampling.lean`, `MediumSizedSubsets/Potential.lean` | The constants of Theorem 2, the probability that a sum is sampled, the minimizing pair |
+| `MediumSizedSubsets.lean` | Theorem 2 |
+| `ArithmeticProgression.lean` | Arithmetic progressions and intervals of `ZMod p` |
+| `ArithmeticProgression/NearInterval.lean` | Progressions close to an interval |
+| `SubsetSampling.lean` | Random subsets against independent samples |
+| `ZModStability.lean` | `CauchyDavenportStability` and Theorem 6 |
+| `IntervalSumsets/FewTranslates.lean` | `FewTranslatesNearIntervals` and its form for integers |
+| `IntervalSumsets/Fibres.lean`, `IntervalSumsets/Sampling.lean` | Residue classes and the samples of Theorem 8 |
+| `IntervalSumsets.lean` | Theorem 8 |
+| `IntervalEnds.lean` | Lemma 9 |
+| `Stickout.lean` | Lemma 10 and Corollary 11 |
+| `IntervalCovering.lean` | Lemma 12 |
+| `CauchyDavenportBound.lean` | Theorem 1 |
 
-Bollobás, Leader and Tiba prove their theorem by applying Shao's theorem repeatedly. The proof
-here follows DenseSetsWithoutLargeSumsets instead. [formalization.yaml](formalization.yaml) records the
-differences from the sources, the scope, and the use of AI coding agents.
+[formalization.yaml](formalization.yaml) records the sources, the differences from them, the
+scope, and the use of AI coding agents.
+
+## Verification
+
+`Challenge.lean` imports only Mathlib. It defines `CauchyDavenportStability` and
+`FewTranslatesNearIntervals`, with the same values as the library, and states
+`exists_forall_exists_subset_min_lt_expect_card_add'`,
+`exists_forall_exists_subset_card_sdiff_le_forall_add_ne'`,
+`exists_forall_exists_subset_card_sdiff_le_card_add_le'`,
+`exists_arithProg_card_symmDiff_le_of_expect_card_add_le'`,
+`exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_image_range'` and
+`exists_subset_card_eq_card_add_card_sub_one_le_card_add'` with `sorry`. `comparator.json` names
+these six theorems, no definition holes, so the two definitions are compared in full, `Challenge`
+and `Solution` as the modules to compare, and `propext`, `Classical.choice` and `Quot.sound` as
+the permitted axioms.
 
 ## Build
 
