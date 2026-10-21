@@ -41,6 +41,8 @@ variable {G : Type*} [AddCommGroup G] [DecidableEq G] {W A B C : Finset G}
 def sumTriples (A B C : Finset G) : Finset (G × G × G) :=
   {x ∈ A ×ˢ B ×ˢ C | x.1 + x.2.1 = x.2.2}
 
+/-- A triple belongs to `sumTriples A B C` when its entries lie in `A`, `B`, `C` and the first two
+add up to the third. -/
 @[simp]
 lemma mem_sumTriples {x : G × G × G} :
     x ∈ sumTriples A B C ↔ x.1 ∈ A ∧ x.2.1 ∈ B ∧ x.2.2 ∈ C ∧ x.1 + x.2.1 = x.2.2 := by
@@ -51,6 +53,7 @@ consecutive differences lie in `A`, `B` and `C`. -/
 def triangleIndices (W A B C : Finset G) : Finset (↥W × ↥W × ↥W) :=
   {x ∈ univ | (x.2.1 : G) - x.1 ∈ A ∧ (x.2.2 : G) - (x.2.1 : G) ∈ B ∧ (x.2.2 : G) - x.1 ∈ C}
 
+/-- A triple `(u, v, w)` is a triangle index when `v - u ∈ A`, `w - v ∈ B` and `w - u ∈ C`. -/
 @[simp]
 lemma mem_triangleIndices {x : ↥W × ↥W × ↥W} :
     x ∈ triangleIndices W A B C ↔
@@ -61,32 +64,32 @@ lemma mem_triangleIndices {x : ↥W × ↥W × ↥W} :
 abbrev tripartiteGraph (W A B C : Finset G) : SimpleGraph (↥W ⊕ ↥W ⊕ ↥W) :=
   graph (triangleIndices W A B C)
 
+/-- The first two vertices of a triangle index are adjacent. -/
 lemma adj_in₀_in₁ {u v w : ↥W} (h : (u, v, w) ∈ triangleIndices W A B C) :
     (tripartiteGraph W A B C).Adj (in₀ u) (in₁ v) := Rel.in₀₁ h
 
+/-- The last two vertices of a triangle index are adjacent. -/
 lemma adj_in₁_in₂ {u v w : ↥W} (h : (u, v, w) ∈ triangleIndices W A B C) :
     (tripartiteGraph W A B C).Adj (in₁ v) (in₂ w) := Rel.in₁₂ h
 
+/-- The first and the last vertex of a triangle index are adjacent. -/
 lemma adj_in₀_in₂ {u v w : ↥W} (h : (u, v, w) ∈ triangleIndices W A B C) :
     (tripartiteGraph W A B C).Adj (in₀ u) (in₂ w) := Rel.in₀₂ h
 
 /-- An edge between the first and the second part is labelled by an element of `A`. -/
 lemma sub_mem_of_adj_in₀_in₁ {u v : ↥W} (h : (tripartiteGraph W A B C).Adj (in₀ u) (in₁ v)) :
     (v : G) - u ∈ A := by
-  obtain ⟨w, hw⟩ := Graph.in₀₁_iff.1 h
-  exact (mem_triangleIndices.1 hw).1
+  grind [Graph.in₀₁_iff, mem_triangleIndices]
 
 /-- An edge between the second and the third part is labelled by an element of `B`. -/
 lemma sub_mem_of_adj_in₁_in₂ {v w : ↥W} (h : (tripartiteGraph W A B C).Adj (in₁ v) (in₂ w)) :
     (w : G) - v ∈ B := by
-  obtain ⟨u, hu⟩ := Graph.in₁₂_iff.1 h
-  exact (mem_triangleIndices.1 hu).2.1
+  grind [Graph.in₁₂_iff, mem_triangleIndices]
 
 /-- An edge between the first and the third part is labelled by an element of `C`. -/
 lemma sub_mem_of_adj_in₀_in₂ {u w : ↥W} (h : (tripartiteGraph W A B C).Adj (in₀ u) (in₂ w)) :
     (w : G) - u ∈ C := by
-  obtain ⟨v, hv⟩ := Graph.in₀₂_iff.1 h
-  exact (mem_triangleIndices.1 hv).2.2
+  grind [Graph.in₀₂_iff, mem_triangleIndices]
 
 /-- There is no accidental triangle: a triangle of the graph is a triangle index. Indeed, its three
 edges force the three defining conditions of `triangleIndices` separately. -/
@@ -107,16 +110,11 @@ lemma card_triangleIndices_le :
     #(triangleIndices W A B C) ≤ #W * #(sumTriples A B C) := by
   rw [← card_product]
   apply card_le_card_of_injOn
-    (fun x => ((x.1 : G), ((x.2.1 : G) - x.1, (x.2.2 : G) - x.2.1, (x.2.2 : G) - x.1)))
-  · intro x hx
-    rw [mem_coe, mem_triangleIndices] at hx
-    simp only [mem_coe, mem_product, mem_sumTriples]
-    exact ⟨x.1.2, hx.1, hx.2.1, hx.2.2, by simp⟩
-  · intro x _ y _ h
-    simp only [Prod.mk_inj] at h
-    obtain ⟨hu, hv, -, hw⟩ := h
-    rw [hu] at hv hw
-    exact Prod.ext (Subtype.ext hu)
-      (Prod.ext (Subtype.ext (sub_left_inj.1 hv)) (Subtype.ext (sub_left_inj.1 hw)))
+    (fun x ↦ ((x.1 : G), ((x.2.1 : G) - x.1, (x.2.2 : G) - x.2.1, (x.2.2 : G) - x.1)))
+  · rintro ⟨u, v, w⟩ hx
+    simp_all
+  · rintro ⟨u, v, w⟩ - ⟨u', v', w'⟩ - h
+    simp only [Prod.mk.injEq, Subtype.ext_iff] at h ⊢
+    grind
 
 end LargeSumsetsFromSubsets.ArithmeticRemoval

@@ -151,42 +151,44 @@ automation:
       prompting_notes: >-
         One request listing the modules to copy, the declaration names to keep, the Palomar
         layout to follow and the sources to record.
+    - method: "agent"
+      models: ["MiniMax M3.1 Flash Free"]
+      framework: "OpenCode"
+      tool_setup: >-
+        Lean 4, Mathlib and a shell, in the pinned Lake environment. It continued a restyle
+        begun by Claude Code: it repaired LargeSumsetsFromSubsets/FewTranslates.lean, the
+        restyled module of Fox–Luo–Pham–Zhou, which did not compile, moved that module into
+        its own namespace, and rewrote Challenge.lean and Solution.lean for the reduced
+        scope, with the statements of the library as restyled. It also updated the README and
+        this file. Every change is checked by the Lean compiler.
+      cost:
+        wall_time: "one session"
+        spend_usd: "not tracked"
+        hardware: "local machine"
+      prompting_notes: >-
+        One request to go back to the version with the Fox–Luo–Pham–Zhou theorem and only
+        what the downstream dependencies need, and to match the style and format of the
+        author's standards, continued by a request to finish the restyle.
   spend_usd: "not tracked"
   notes: >-
     The Lean proofs were written by AI agents in the two source repositories. This repository
-    was assembled by Claude Code under the direction of Gabriel Dahia. The library and
-    Solution.lean build without sorry. The solution theorems use propext, Classical.choice
-    and Quot.sound only.
+    was assembled by Claude Code under the direction of Gabriel Dahia, and restyled by
+    OpenCode. The library and Solution.lean build without sorry. The solution theorems use
+    propext, Classical.choice and Quot.sound only.
 
 fidelity:
   divergences: >-
-    Bollobás–Leader–Tiba, Theorem 2, statement. The paper takes any real K. The Lean
-    statement requires σ > 0 in its place. The hypothesis is c₁c₂ > c max(|A|, |B|) and the
-    three conclusions are strict inequalities, where the paper has ≥ throughout. The sets A₀
-    and B₀ are nonempty. The random points are the values of uniformly random functions
-    Fin c₁ → A₀ and Fin c₂ → B₀, and the expectation is Finset.expect over the pairs of
-    functions. The constant is originalBltConstant σ ε = bltSampleConst K ε' with
-    K = 2 max(σ, 1) and ε' = min(ε, 1)/2. It equals 1296 K / (ε' δ), where δ = bltDelta K ε'
-    is at most removalConst(16 D^7, ρ/D) with D = 100 K^3 and ρ = ε'^2 / (1000 D), so it is
-    of tower type. The functions originalBltConstant and bltConstant take unused proofs of
-    σ > 0 and ε > 0 as arguments.
-
-    Bollobás–Leader–Tiba, Theorem 2, proof. The paper applies Shao's theorem repeatedly to
-    a decreasing sequence of pairs of subsets. The Lean proof follows
-    DenseSetsWithoutLargeSumsets. It first proves a
-    normalized form for K ≥ 1 and 0 < ε ≤ 1, in which the subsets contain at least a
-    1 - ε/4 proportion of A and B and the inequalities are not strict. It takes one pair
-    (X, Y) of nonempty subsets minimizing
+    Proof of Theorem 2 in Bollobás–Leader–Tiba. The paper applies Shao's theorem repeatedly
+    to a decreasing sequence of pairs of subsets. The Lean proof follows a different
+    strategy. It first proves a normalized form for K ≥ 1 and 0 < ε ≤ 1, in which the subsets
+    contain at least a 1 - ε/4 proportion of A and B and the inequalities are not strict. It
+    takes one pair (X, Y) of nonempty subsets minimizing
     min(|X + Y|, D|X|, D|Y|) + Λ(|A \ X| + |B \ Y|), with Λ = 4D/ε. If the conclusion
     failed for (X, Y), the sums with at least α min(|X|, |Y|) representations, where
     α = δ/(36K), would be few and would contain the sums of all but a δ proportion of the
     pairs. A pair of subsets with a smaller value is then obtained from the cleanup theorem
     when |X + Y| ≤ D min(|X|, |Y|), and from an elementary covering bound otherwise. The
     probability that a sum is sampled is bounded by a second-moment estimate.
-
-    Square-root form. exists_medium_sized_subsets_with_large_sumset_subsets is not stated
-    in the paper. It takes c₁ = c₂ of order √max(|A|, |B|) and replaces the expectation by
-    one sample, with the constant bltConstant σ ε = 8 (max(1, c(σ, ε)) + σ + 1)^2.
 
     Cleanup theorem. Shao's Theorem 1.1 takes |A| = |B| = N, a set Γ of at least
     (1 - δ) N^2 pairs and the hypothesis |A +_Γ B| ≤ KN, and gives |A' + B'| ≤ |A +_Γ B| + εN.
@@ -197,28 +199,18 @@ fidelity:
     a translate of X + Y, whose doubling is bounded by the Plünnecke–Ruzsa inequality. It
     does not use Freiman models.
 
-    Arithmetic removal lemma. The statement is that of Shao's Corollary 2.5, for subsets
-    A, B, C of a set X with |X + X| ≤ K|X|, with K ≥ 0 and the explicit threshold
-    removalConst(K, ε) = triangleRemovalBound(ε / (36 (1 + K)^2)) / 2. The proof is the
-    argument of Král, Serra and Vena on three copies of X ∪ (X + X), with the triangle
-    removal lemma of Mathlib. That lemma is proved from Szemerédi's regularity lemma, so
-    the threshold is of tower type. The removal lemma for a whole finite abelian group, as
-    stated by Green, is not formalized separately.
-
-    Fox–Luo–Pham–Zhou, Theorem 1.1. The Lean statement has the constant c = 1/14 and
-    κ^(1/3) is a real power. The paper proves the symmetric theorem as the case A = B of
-    its asymmetric Theorem 1.2. The Lean proof treats the symmetric case directly, by the
-    same induction on s.
-
 review:
   status: "not reviewed"
   reviewers: []
   notes: >-
     No independent mathematical or formalization review. The statements of Challenge.lean
     were checked against the papers by the agent that wrote them. lake comparator, run on
-    macOS on 10 October 2026 with its sandbox disabled, accepts the solution with Lean's
-    kernel, nanoda and con-ron. scripts/verify-comparator.sh, which runs it in the sandbox
-    and needs Linux, has not been run.
+    macOS on 10 October 2026 with its sandbox disabled, accepted the solution as it stood
+    then, with Lean's kernel, nanoda and con-ron. The restyle of 21 October 2026 changed the
+    statements of Challenge.lean and Solution.lean and the names of the library declarations
+    they use; the restyled repository was checked with lake build only, and the comparator
+    has not been run since. scripts/verify-comparator.sh, which runs it in the sandbox and
+    needs Linux, has not been run.
 
 alignment:
   namespace: "LargeSumsetsFromSubsets"
@@ -229,22 +221,22 @@ alignment:
       status: "proved"
       note: "With strict inequalities and the explicit constant originalBltConstant."
     - source: "Bollobás–Leader–Tiba, Theorem 2"
-      lean: "LargeSumsetsFromSubsets.exists_medium_sized_subsets_with_large_sumset_sample"
+      lean: "LargeSumsetsFromSubsets.exists_subset_min_lt_expect_card_add"
       module: "LargeSumsetsFromSubsets.MediumSizedSubsets"
       status: "proved"
       note: "The library form of the previous statement."
     - source: "Bollobás–Leader–Tiba, Theorem 2, normalized form"
-      lean: "LargeSumsetsFromSubsets.exists_medium_sized_subsets_with_large_sumset_core"
+      lean: "LargeSumsetsFromSubsets.exists_subset_min_le_expectSumset"
       module: "LargeSumsetsFromSubsets.MediumSizedSubsets"
       status: "proved"
       note: "For K ≥ 1 and 0 < ε ≤ 1, with the constant bltSampleConst K ε."
     - source: "Bollobás–Leader–Tiba, Theorem 2, square-root form"
-      lean: "LargeSumsetsFromSubsets.exists_medium_sized_subsets_with_large_sumset_subsets"
+      lean: "LargeSumsetsFromSubsets.exists_subset_card_le_mul_sqrt_min_le_card_add"
       module: "LargeSumsetsFromSubsets.MediumSizedSubsets"
       status: "proved"
       note: "Not stated in the paper."
     - source: "Shao, Corollary 2.5 (arithmetic removal in a set of small doubling)"
-      lean: "LargeSumsetsFromSubsets.ArithmeticRemoval.arithmetic_removal"
+      lean: "LargeSumsetsFromSubsets.ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne"
       module: "LargeSumsetsFromSubsets.ArithmeticRemoval"
       status: "proved"
       note: >-
@@ -252,14 +244,14 @@ alignment:
         LargeSumsetsFromSubsets.exists_subset_card_sdiff_le_forall_add_ne, with
         LargeSumsetsFromSubsets.removalConst_pos.
     - source: "Shao, Theorem 1.1"
-      lean: "LargeSumsetsFromSubsets.Cleanup.exists_cleanup"
+      lean: "LargeSumsetsFromSubsets.Cleanup.exists_subset_card_sdiff_le_card_add_le"
       module: "LargeSumsetsFromSubsets.Cleanup"
       status: "proved"
       note: >-
         A variant that assumes the full sumset is small. Stated in Challenge.lean as
         LargeSumsetsFromSubsets.exists_subset_card_sdiff_le_card_add_le.
     - source: "Fox–Luo–Pham–Zhou, Theorem 1.1"
-      lean: "LargeSumsetsFromSubsets.exists_subset_card_add_ge"
+      lean: "LargeSumsetsFromSubsets.FewTranslates.exists_subset_card_le_mul_le_card_add"
       module: "LargeSumsetsFromSubsets.FewTranslates"
       status: "proved"
       note: >-

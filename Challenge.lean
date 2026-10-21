@@ -19,7 +19,8 @@ proofs are supplied by the companion `Solution` module.
 * `exists_subset_min_lt_expect_card_bltSample_add`: Theorem 2 of Bollobás, Leader and Tiba,
   *Large sumsets from medium-sized subsets*, arXiv:2206.09366.
 * `exists_subset_card_sdiff_le_forall_add_ne`: the arithmetic removal lemma in a set of small
-  doubling, with the threshold `removalConst`, which is positive by `removalConst_pos`.
+  doubling, with the threshold `ArithmeticRemoval.removalConst`, which is positive by
+  `removalConst_pos`.
 * `exists_subset_card_sdiff_le_card_add_le`: a variant of Shao's almost-all
   Balog–Szemerédi–Gowers theorem, arXiv:1811.10707, for pairs of sets with small sumset.
 * `exists_subset_card_le_mul_le_card_add`: Theorem 1.1 of Fox, Luo, Pham and Zhou, *Small subsets
@@ -70,39 +71,32 @@ def bltAlpha (K ε : ℝ) : ℝ := bltDelta K ε / (36 * K)
 def bltSampleConst (K ε : ℝ) : ℝ := 36 / (ε * bltAlpha K ε)
 
 /-- The constant `c(σ, ε)` in Theorem 2 of Bollobás, Leader and Tiba. -/
-def originalBltConstant (σ ε : ℝ) (_hσ : 0 < σ) (_hε : 0 < ε) : ℝ :=
+def originalBltConstant (σ ε : ℝ) : ℝ :=
   bltSampleConst (2 * max σ 1) (min ε 1 / 2)
 
 end
-
-section Sample
-
-variable {G : Type*} [DecidableEq G]
-
-/-- The set of values of a sequence `f` of `k` elements of `A`. -/
-def bltSample (A : Finset G) {k : ℕ} (f : Fin k → ↥A) : Finset G := univ.image fun i ↦ f i
-
-end Sample
 
 /-! ### Statements -/
 
 variable {G : Type*} [AddCommGroup G] [DecidableEq G]
 
-/-- **Large sumsets from medium-sized subsets** (Bollobás, Leader and Tiba, Theorem 2). Let `A`
-and `B` be finite nonempty subsets of an abelian group and let `1 ≤ c₁ ≤ #A` and `1 ≤ c₂ ≤ #B`
-satisfy `c₁ * c₂ > originalBltConstant σ ε * max #A #B`. There are `A₀ ⊆ A` and `B₀ ⊆ B` with
-more than `(1 - ε) * #A` and `(1 - ε) * #B` elements such that, for `c₁` points of `A₀` and `c₂`
-points of `B₀` chosen independently and uniformly at random, with repetitions allowed, the sets
-`A'` and `B'` of chosen points satisfy
-`𝔼 #(A' + B') > min ((1 - ε) * #(A₀ + B₀)) (σ * #A₀) (σ * #B₀)`. -/
+/-- **Large sumsets from medium-sized subsets** (Bollobás, Leader and Tiba, Theorem 2). Let $A$
+and $B$ be finite nonempty subsets of an abelian group and let $1 \le c_1 \le |A|$ and
+$1 \le c_2 \le |B|$ satisfy $c_1 c_2 > c(\sigma, \varepsilon) \max(|A|, |B|)$, where
+$c(\sigma, \varepsilon)$ is `originalBltConstant σ ε`. There are $A_0 \subseteq A$ and
+$B_0 \subseteq B$ with $|A_0| > (1 - \varepsilon)|A|$ and $|B_0| > (1 - \varepsilon)|B|$ such
+that, for $c_1$ points of $A_0$ and $c_2$ points of $B_0$ chosen independently and uniformly at
+random, with repetitions allowed, the sets $A'$ and $B'$ of chosen points satisfy
+$\mathbb{E} |A' + B'| > \min((1 - \varepsilon)|A_0 + B_0|, \sigma |A_0|, \sigma |B_0|)$. -/
 theorem exists_subset_min_lt_expect_card_bltSample_add {σ ε : ℝ} (hσ : 0 < σ) (hε : 0 < ε)
     {A B : Finset G} (hA : A.Nonempty) (hB : B.Nonempty) (c₁ c₂ : ℕ) (hc₁ : 1 ≤ c₁)
     (hc₁A : c₁ ≤ #A) (hc₂ : 1 ≤ c₂) (hc₂B : c₂ ≤ #B)
-    (hc : originalBltConstant σ ε hσ hε * max (#A : ℝ) #B < c₁ * c₂) :
+    (hc : originalBltConstant σ ε * max (#A : ℝ) #B < c₁ * c₂) :
     ∃ A₀ ⊆ A, ∃ B₀ ⊆ B, A₀.Nonempty ∧ B₀.Nonempty ∧
       (1 - ε) * #A < #A₀ ∧ (1 - ε) * #B < #B₀ ∧
       min (min ((1 - ε) * #(A₀ + B₀)) (σ * #A₀)) (σ * #B₀) <
-        𝔼 ab : (Fin c₁ → A₀) × (Fin c₂ → B₀), (#(bltSample A₀ ab.1 + bltSample B₀ ab.2) : ℝ) :=
+        𝔼 ab : (Fin c₁ → A₀) × (Fin c₂ → B₀),
+          (#(univ.image (fun i ↦ (ab.1 i : G)) + univ.image (fun i ↦ (ab.2 i : G))) : ℝ) :=
   sorry
 
 /-- The threshold of the arithmetic removal lemma is positive. -/
@@ -139,8 +133,9 @@ theorem exists_subset_card_sdiff_le_card_add_le {X Y P : Finset G} (hX : X.Nonem
   sorry
 
 /-- **Large sumsets from few translates** (Fox, Luo, Pham and Zhou, Theorem 1.1). A finite
-nonempty subset `A` of an abelian group with `#(A + A) = κ * #A` has, for each `s ≥ 1`, a subset
-`T` with at most `s` elements and `#(A + T) ≥ min (κ ^ (1 / 3)) s * #A / 14`. -/
+nonempty subset $A$ of an abelian group with $|A + A| = \kappa |A|$ has, for each $s \ge 1$, a
+subset $T$ with at most $s$ elements and $|A + T| \ge \min(\kappa^{1/3}, s) |A| / 14$, where
+$\kappa = |A + A| / |A|$. -/
 theorem exists_subset_card_le_mul_le_card_add {A : Finset G} (hA : A.Nonempty) {s : ℕ}
     (hs : 1 ≤ s) :
     ∃ T ⊆ A, #T ≤ s ∧
