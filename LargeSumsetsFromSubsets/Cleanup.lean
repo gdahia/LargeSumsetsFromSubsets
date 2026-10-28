@@ -43,7 +43,7 @@ open scoped Pointwise
 
 namespace LargeSumsetsFromSubsets.Cleanup
 
-variable {G : Type*} [DecidableEq G] [AddCommGroup G]
+variable {G : Type*} [AddCommGroup G] [DecidableEq G]
 
 /-! ### Translates
 
@@ -191,13 +191,11 @@ arithmetic removal lemma inside `Z` deletes few elements from the three translat
 of these solutions. -/
 theorem exists_subset_card_sdiff_le_card_add_le {X Y P : Finset G} (hX : X.Nonempty)
     (hY : Y.Nonempty) {D ρ δ : ℝ} (hD : 1 ≤ D) (hρ : 0 < ρ)
-    (hS : (#(X + Y) : ℝ) ≤ D * min (#X : ℝ) (#Y : ℝ))
-    (hδ : 0 ≤ δ) (hδ' : δ ≤ ArithmeticRemoval.removalConst (16 * D ^ 7) (ρ / D))
-    (hbad : (#(badPairs X Y P) : ℝ) ≤ δ * ((#X : ℝ) * #Y)) :
-    ∃ X₀ ⊆ X, ∃ Y₀ ⊆ Y,
-      (#(X \ X₀) : ℝ) ≤ ρ * min (#X : ℝ) (#Y : ℝ) ∧
-      (#(Y \ Y₀) : ℝ) ≤ ρ * min (#X : ℝ) (#Y : ℝ) ∧
-      (#(X₀ + Y₀) : ℝ) ≤ #P + ρ * min (#X : ℝ) (#Y : ℝ) := by
+    (hS : #(X + Y) ≤ D * min (#X : ℝ) #Y) (hδ : 0 ≤ δ)
+    (hδ' : δ ≤ ArithmeticRemoval.removalConst (16 * D ^ 7) (ρ / D))
+    (hbad : #{p ∈ X ×ˢ Y | p.1 + p.2 ∉ P} ≤ δ * (#X * #Y)) :
+    ∃ X₀ ⊆ X, ∃ Y₀ ⊆ Y, #(X \ X₀) ≤ ρ * min (#X : ℝ) #Y ∧ #(Y \ Y₀) ≤ ρ * min (#X : ℝ) #Y ∧
+      #(X₀ + Y₀) ≤ #P + ρ * min (#X : ℝ) #Y := by
   obtain ⟨u, hu⟩ := hX
   obtain ⟨v, hv⟩ := hY
   have hZ : #((-(u + v)) +ᵥ (X + Y)) = #(X + Y) := card_vadd_finset _ _
@@ -213,7 +211,7 @@ theorem exists_subset_card_sdiff_le_card_add_le {X Y P : Finset G} (hX : X.Nonem
         exact card_add_add_le_mul ⟨u, hu⟩ ⟨v, hv⟩ (by linarith) hS)
       (by positivity) hδ hδ'
       (by
-        rw [card_sumTriples_neg_vadd_eq_card_badPairs, hZ]
+        rw [← ArithmeticRemoval.sumTriples, card_sumTriples_neg_vadd_eq_card_badPairs, hZ]
         exact hbad.trans (by gcongr; exact_mod_cast hXY))
   have hdel : ρ / D * #((-(u + v)) +ᵥ (X + Y)) ≤ ρ * min (#X : ℝ) (#Y : ℝ) := by
     rw [hZ, div_mul_eq_mul_div, div_le_iff₀ (by linarith)]
@@ -362,11 +360,10 @@ $|P| + \rho \min(|X|, |Y|)$ elements. -/
 theorem exists_forall_exists_subset_card_sdiff_le_card_add_le {D ρ : ℝ} (hD : 1 ≤ D)
     (hρ : 0 < ρ) :
     ∃ δ > (0 : ℝ), ∀ {G : Type*} [AddCommGroup G] [DecidableEq G] {X Y P : Finset G},
-      X.Nonempty → Y.Nonempty → (#(X + Y) : ℝ) ≤ D * min (#X : ℝ) #Y →
-      (#{p ∈ X ×ˢ Y | p.1 + p.2 ∉ P} : ℝ) ≤ δ * (#X * #Y) →
-      ∃ X₀ ⊆ X, ∃ Y₀ ⊆ Y,
-        (#(X \ X₀) : ℝ) ≤ ρ * min (#X : ℝ) #Y ∧ (#(Y \ Y₀) : ℝ) ≤ ρ * min (#X : ℝ) #Y ∧
-          (#(X₀ + Y₀) : ℝ) ≤ #P + ρ * min (#X : ℝ) #Y := by
+      X.Nonempty → Y.Nonempty → #(X + Y) ≤ D * min (#X : ℝ) #Y →
+      #{p ∈ X ×ˢ Y | p.1 + p.2 ∉ P} ≤ δ * (#X * #Y) →
+      ∃ X₀ ⊆ X, ∃ Y₀ ⊆ Y, #(X \ X₀) ≤ ρ * min (#X : ℝ) #Y ∧ #(Y \ Y₀) ≤ ρ * min (#X : ℝ) #Y ∧
+        #(X₀ + Y₀) ≤ #P + ρ * min (#X : ℝ) #Y := by
   have hδ := ArithmeticRemoval.removalConst_pos (by positivity : (0 : ℝ) ≤ 16 * D ^ 7)
     (div_pos hρ (by linarith : (0 : ℝ) < D))
   exact ⟨_, hδ, fun hX hY hS hbad ↦

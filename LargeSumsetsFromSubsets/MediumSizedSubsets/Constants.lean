@@ -21,7 +21,8 @@ theorem uses six constants, defined here together with the handful of inequaliti
 * `bltAlpha K ε` is the popularity threshold;
 * `bltSampleConst K ε` is the constant of the theorem itself.
 
-Each constant depends only on the previous ones, so the definitions are not circular.
+Each constant depends only on the previous ones, so the definitions are not circular. The numerals
+in the definitions are natural numbers, so that the definitions contain no proofs.
 -/
 
 @[expose] public section
@@ -31,31 +32,32 @@ namespace LargeSumsetsFromSubsets
 noncomputable section
 
 /-- The cap on the sumset term of the potential function. -/
-def bltCap (K : ℝ) : ℝ := 100 * K ^ 3
+def bltCap (K : ℝ) : ℝ := (100 : ℕ) * K ^ 3
 
 /-- The price, in the potential function, of deleting one element. -/
 def bltPenalty (K ε : ℝ) : ℝ := 4 * bltCap K / ε
 
 /-- The proportion of elements that the cleanup steps are allowed to delete. -/
-def bltRho (K ε : ℝ) : ℝ := ε ^ 2 / (1000 * bltCap K)
+def bltRho (K ε : ℝ) : ℝ := ε ^ 2 / ((1000 : ℕ) * bltCap K)
 
 /-- The proportion of pairs allowed to have an unpopular sum. -/
 def bltDelta (K ε : ℝ) : ℝ :=
-  min (min (1 / 2) (bltRho K ε / 8))
-    (ArithmeticRemoval.removalConst (16 * bltCap K ^ 7) (bltRho K ε / bltCap K))
+  min (min (1 / (2 : ℕ)) (bltRho K ε / (8 : ℕ)))
+    (ArithmeticRemoval.removalConst ((16 : ℕ) * bltCap K ^ 7) (bltRho K ε / bltCap K))
 
 /-- The popularity threshold: a sum is popular when it has at least `bltAlpha K ε * min #X #Y`
 representations. -/
-def bltAlpha (K ε : ℝ) : ℝ := bltDelta K ε / (36 * K)
+def bltAlpha (K ε : ℝ) : ℝ := bltDelta K ε / ((36 : ℕ) * K)
 
 /-- The constant of the medium-sized-subset theorem. -/
-def bltSampleConst (K ε : ℝ) : ℝ := 36 / (ε * bltAlpha K ε)
+def bltSampleConst (K ε : ℝ) : ℝ := (36 : ℕ) / (ε * bltAlpha K ε)
 
 variable {K ε : ℝ}
 
 /-- The cap is at least `100`. -/
 lemma hundred_le_bltCap (hK : 1 ≤ K) : 100 ≤ bltCap K := by
   unfold bltCap
+  push_cast
   linarith [one_le_pow₀ (n := 3) hK]
 
 /-- The cap is positive. -/
@@ -73,6 +75,7 @@ lemma bltRho_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltRho K ε :=
 /-- `bltRho` is far smaller than `ε`, which is what makes the cleanup steps cheap. -/
 lemma bltRho_le (hK : 1 ≤ K) (hε : 0 < ε) (hε1 : ε ≤ 1) : bltRho K ε ≤ ε / 1000 := by
   unfold bltRho
+  push_cast
   rw [div_le_div_iff₀ (by nlinarith [hundred_le_bltCap hK]) (by norm_num)]
   nlinarith [hundred_le_bltCap hK]
 
@@ -103,7 +106,7 @@ lemma bltDelta_le_removalConst :
 
 /-- The popularity threshold is positive. -/
 lemma bltAlpha_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltAlpha K ε :=
-  div_pos (bltDelta_pos hK hε) (by linarith)
+  div_pos (bltDelta_pos hK hε) (by push_cast; linarith)
 
 /-- The sampling constant is positive. -/
 lemma bltSampleConst_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltSampleConst K ε :=
@@ -113,6 +116,7 @@ lemma bltSampleConst_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltSampleConst K ε
 lemma mul_bltSampleConst_mul_bltAlpha (hK : 1 ≤ K) (hε : 0 < ε) :
     ε * (bltSampleConst K ε * bltAlpha K ε) = 36 := by
   unfold bltSampleConst
+  push_cast
   field_simp [(bltAlpha_pos hK hε).ne']
 
 /-- A product `κ` of sample sizes above `bltSampleConst K ε * m` satisfies
@@ -132,6 +136,7 @@ lemma mul_bltDelta_mul_bltSampleConst (hK : 1 ≤ K) (hε : 0 < ε) :
 /-- Division-free form of the definition of `bltAlpha`. -/
 lemma mul_bltAlpha_eq_bltDelta (hK : 1 ≤ K) : 36 * (K * bltAlpha K ε) = bltDelta K ε := by
   unfold bltAlpha
+  push_cast
   field_simp [(by positivity : K ≠ 0)]
 
 /-- The penalty of deleting a `bltRho` proportion of elements is a small multiple of `ε`. -/

@@ -50,7 +50,7 @@ open scoped BigOperators Pointwise
 
 noncomputable section
 
-variable {G : Type*} [DecidableEq G] [AddCommGroup G]
+variable {G : Type*} [AddCommGroup G] [DecidableEq G]
 
 /-! ### Elementary inequalities -/
 
@@ -301,6 +301,7 @@ private lemma exists_cappedSumset_add_lt_of_lt_card_add (hK : 1 ≤ K) (hε : 0 
     rw [← mul_add, ← mul_assoc, bltPenalty_mul_bltRho hK hε]
   refine (add_le_add (cappedSumset_le_card X₁ Y₁) le_rfl).trans_lt ?_
   rw [cappedSumset_eq_min (bltCap_pos hK).le X Y, min_eq_right hS.le, bltCap]
+  push_cast
   linarith [lt_of_mul_le_two_mul_pow_three (by positivity) (by positivity) (by positivity)
       (by positivity) hP hsum,
     mul_le_mul_of_nonneg_left (add_le_add hdX hdY) (bltPenalty_pos hK hε).le,
@@ -382,7 +383,7 @@ lemma exists_subset_min_le_expectSumset {K ε : ℝ} (hK : 1 ≤ K) (hε : 0 < �
 
 /-- The constant `c(σ, ε)` in Theorem 2 of Bollobás, Leader and Tiba. -/
 def originalBltConstant (σ ε : ℝ) : ℝ :=
-  bltSampleConst (2 * max σ 1) (min ε 1 / 2)
+  bltSampleConst ((2 : ℕ) * max σ 1) (min ε 1 / (2 : ℕ))
 
 /-- **Large sumsets from medium-sized subsets** (Bollobás, Leader and Tiba, Theorem 2). Let `A`
 and `B` be finite nonempty subsets of an abelian group and let `1 ≤ c₁ ≤ #A` and `1 ≤ c₂ ≤ #B`
@@ -403,8 +404,8 @@ theorem exists_subset_min_lt_expect_card_add {σ ε : ℝ} (hσ : 0 < σ) (hε :
   have hε' : min ε 1 / 2 < ε := by linarith [min_le_left ε 1]
   have hσK : σ < 2 * max σ 1 := by linarith [le_max_left σ 1, le_max_right σ 1]
   obtain ⟨X, hXA, Y, hYB, hX, hY, hXcard, hYcard, hE⟩ :=
-    exists_subset_min_le_expectSumset (by linarith [le_max_right σ 1]) (by positivity)
-      (by linarith [min_le_right ε 1]) hA hB hc₁ hc₁A hc₂ hc₂B hc
+    exists_subset_min_le_expectSumset (by push_cast; linarith [le_max_right σ 1]) (by positivity)
+      (by push_cast; linarith [min_le_right ε 1]) hA hB hc₁ hc₁A hc₂ hc₂B hc
   refine ⟨X, hXA, Y, hYB, hX, hY, ?_, ?_, lt_of_lt_of_le ?_ hE⟩
   · linarith [mul_lt_mul_of_pos_right (by linarith : 1 - ε < 1 - min ε 1 / 2 / 4)
       (Nat.cast_pos.2 hA.card_pos : (0 : ℝ) < #A)]

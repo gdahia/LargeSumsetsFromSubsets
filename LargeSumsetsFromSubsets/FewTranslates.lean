@@ -5,7 +5,6 @@ Authors: Gabriel Dahia
 -/
 module
 
-public import Mathlib.Algebra.Group.Pointwise.Finset.Basic
 public import Mathlib.Analysis.SpecialFunctions.Pow.Real
 
 /-!

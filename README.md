@@ -7,86 +7,100 @@ Fox, Luo, Pham and Zhou,
 [*Small subsets with large sumset: beyond the Cauchy–Davenport bound*](https://arxiv.org/abs/2210.07196).
 The proof of the first uses an arithmetic removal lemma for sets of small doubling and a variant
 of Shao's [almost-all Balog–Szemerédi–Gowers theorem](https://arxiv.org/abs/1811.10707), which
-are also proved here. The first proof is copied from
-[DenseSetsWithoutLargeSumsets](https://github.com/gdahia/DenseSetsWithoutLargeSumsets) and the
-second from
-[CountingSetsWithGivenDoublingViaDimension](https://github.com/gdahia/CountingSetsWithGivenDoublingViaDimension).
+are also proved here, with explicit thresholds.
+
+Throughout, sets are finite subsets of an abelian group, $|A|$ is the number of elements of $A$,
+and the declarations are in the namespace `LargeSumsetsFromSubsets`.
 
 ## Results
 
-All sets are finite subsets of an abelian group, $|A|$ is the number of elements of $A$, and the
-declarations are in the namespace `LargeSumsetsFromSubsets` or in one of its subnamespaces.
-
-**Bollobás, Leader and Tiba, Theorem 2** (`exists_subset_min_lt_expect_card_add`). Let
-$\sigma > 0$ and $\varepsilon > 0$, let $A$ and $B$ be nonempty, and let $1 \le c_1 \le |A|$ and
-$1 \le c_2 \le |B|$ satisfy `c₁ * c₂ > originalBltConstant σ ε * max #A #B`. There are
+**Theorem 1** (`exists_subset_min_lt_expect_card_add'`). Let $\sigma > 0$ and $\varepsilon > 0$,
+let $A$ and $B$ be nonempty, and let $c_1$ and $c_2$ be integers with $1 \le c_1 \le |A|$ and
+$1 \le c_2 \le |B|$. If $c_1 c_2 > c(\sigma, \varepsilon) \max(|A|, |B|)$, then there are nonempty
 $A_0 \subseteq A$ and $B_0 \subseteq B$ with $|A_0| > (1 - \varepsilon)|A|$ and
-$|B_0| > (1 - \varepsilon)|B|$ such that, for $c_1$ points of $A_0$ and $c_2$ points of $B_0$
-chosen independently and uniformly at random, with repetitions allowed, the sets $A'$ and $B'$ of
-chosen points satisfy
+$|B_0| > (1 - \varepsilon)|B|$ such that
 
-$$\mathbb{E} |A' + B'| > \min\bigl((1 - \varepsilon)|A_0 + B_0|, \sigma |A_0|, \sigma |B_0|\bigr).$$
+$$\mathbb{E}\, |A' + B'| > \min\bigl((1 - \varepsilon)|A_0 + B_0|, \sigma |A_0|, \sigma |B_0|\bigr),$$
 
-The sets of chosen points are `Sampling.bltSample A₀ f` and `Sampling.bltSample B₀ g`, the sets of
-values of `f : Fin c₁ → A₀` and `g : Fin c₂ → B₀`, and the expectation is Mathlib's
-`Finset.expect` over all pairs $(f, g)$. There are two more forms:
+where $A'$ and $B'$ are the sets of $c_1$ points of $A_0$ and $c_2$ points of $B_0$ chosen
+independently and uniformly at random, with repetitions allowed, and $c(\sigma, \varepsilon)$ is
+the constant `originalBltConstant σ ε`,
 
-- `exists_subset_min_le_expectSumset`, for $K \ge 1$ and $0 < \varepsilon \le 1$, with the
-  constant `bltSampleConst K ε`, subsets containing at least
-  $(1 - \varepsilon/4)|A|$ and $(1 - \varepsilon/4)|B|$ elements, and non-strict inequalities;
-- `exists_subset_card_le_mul_sqrt_min_le_card_add`, which gives $A' \subseteq A'' \subseteq A$ and
-  $B' \subseteq B'' \subseteq B$ with $|A''| \ge (1 - \varepsilon)|A|$,
-  $|B''| \ge (1 - \varepsilon)|B|$, at most `bltConstant σ ε * √(max #A #B)` elements in each of
-  $A'$ and $B'$, and $|A' + B'| \ge \min((1 - \varepsilon)|A'' + B''|, \sigma |A''|, \sigma |B''|)$.
+$$c(\sigma, \varepsilon) = \frac{1296 K}{\varepsilon' \delta}, \qquad K = 2 \max(\sigma, 1), \qquad \varepsilon' = \tfrac{1}{2} \min(\varepsilon, 1),$$
 
-The form with an unspecified constant is `exists_forall_exists_subset_min_lt_expect_card_add`.
+with $\delta = \min\bigl(\tfrac{1}{2}, \tfrac{\rho}{8}, r(16 C^7, \rho / C)\bigr)$, $C = 100 K^3$ and
+$\rho = \varepsilon'^2 / (1000 C)$. Here $r(L, \eta) = \tfrac{1}{2} \delta_\triangle(\eta / (36 (1 + L)^2))$
+is the threshold `ArithmeticRemoval.removalConst L η`, where $\delta_\triangle$ is the bound
+`SimpleGraph.triangleRemovalBound` of Mathlib's triangle removal lemma. The expectation is
+Mathlib's `Finset.expect` over all pairs of functions $f : \mathrm{Fin}\ c_1 \to A_0$ and
+$g : \mathrm{Fin}\ c_2 \to B_0$, and $A'$ and $B'$ are the sets of values of $f$ and $g$.
 
-**Arithmetic removal lemma** (`ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne`). Let
-$|X + X| \le K|X|$ and $A, B, C \subseteq X$. If $a + b = c$ has at most $\delta |X|^2$ solutions
-with $a \in A$, $b \in B$, $c \in C$, where `0 ≤ δ ≤ removalConst K ε`, then one can remove at
-most $\varepsilon |X|$ elements from each of $A$, $B$ and $C$ so that no solution remains. The
-form with an unspecified threshold is `exists_forall_exists_subset_card_sdiff_le_forall_add_ne`.
+**Theorem 2** (`ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne'`). Let $K \ge 0$,
+$\varepsilon > 0$ and $0 \le \delta \le r(K, \varepsilon)$, let $X$ be a set with
+$|X + X| \le K |X|$, and let $A, B, C \subseteq X$. If the equation $a + b = c$ has at most
+$\delta |X|^2$ solutions with $a \in A$, $b \in B$ and $c \in C$, then there are
+$A' \subseteq A$, $B' \subseteq B$ and $C' \subseteq C$ with
 
-**Cleanup theorem** (`Cleanup.exists_subset_card_sdiff_le_card_add_le`). Let $X$ and $Y$ be nonempty
-with $|X + Y| \le D \min(|X|, |Y|)$, where $D \ge 1$. If at most $\delta |X| |Y|$ pairs in
-$X \times Y$ have their sum outside a set $P$, where
-`0 ≤ δ ≤ removalConst (16 * D ^ 7) (ρ / D)`, then there are $X_0 \subseteq X$ and
-$Y_0 \subseteq Y$, each missing at most $\rho \min(|X|, |Y|)$ elements, with
-$|X_0 + Y_0| \le |P| + \rho \min(|X|, |Y|)$. The form with an unspecified threshold is
-`exists_forall_exists_subset_card_sdiff_le_card_add_le`. Shao's theorem assumes that the pairs with
-sum in $P$ have few distinct sums. The theorem here assumes in addition that $X + Y$ is small.
+$$|A \setminus A'| \le \varepsilon |X|, \qquad |B \setminus B'| \le \varepsilon |X|, \qquad |C \setminus C'| \le \varepsilon |X|$$
 
-**Fox, Luo, Pham and Zhou, Theorem 1.1** (`FewTranslates.exists_subset_card_le_mul_le_card_add`).
-Let $A$ be nonempty with $|A + A| = \kappa |A|$, and let $s \ge 1$. Some $T \subseteq A$ with at
-most $s$ elements has $|A + T| \ge \min(\kappa^{1/3}, s)|A| / 14$.
+such that $a + b \ne c$ for all $a \in A'$, $b \in B'$ and $c \in C'$.
 
-## Proof and files
+**Theorem 3** (`ArithmeticRemoval.removalConst_pos'`). Let $K \ge 0$ and $\varepsilon > 0$. Then
+
+$$r(K, \varepsilon) > 0.$$
+
+**Theorem 4** (`Cleanup.exists_subset_card_sdiff_le_card_add_le'`). Let $D \ge 1$, $\rho > 0$ and
+$0 \le \delta \le r(16 D^7, \rho / D)$, let $X$ and $Y$ be nonempty with
+$|X + Y| \le D \min(|X|, |Y|)$, and let $P$ be a set. If at most $\delta |X| |Y|$ pairs
+$(x, y) \in X \times Y$ have $x + y \notin P$, then there are $X_0 \subseteq X$ and
+$Y_0 \subseteq Y$ with $|X \setminus X_0| \le \rho \min(|X|, |Y|)$ and
+$|Y \setminus Y_0| \le \rho \min(|X|, |Y|)$ such that
+
+$$|X_0 + Y_0| \le |P| + \rho \min(|X|, |Y|).$$
+
+Shao's theorem assumes only that the pairs with sum in $P$ have few distinct sums. Theorem 4
+assumes in addition that $X + Y$ is small.
+
+**Theorem 5** (`FewTranslates.exists_subset_card_le_mul_le_card_add'`). Let $A$ be nonempty and let
+$s \ge 1$ be an integer. Then there is $T \subseteq A$ with $|T| \le s$ and
+
+$$|A + T| \ge \tfrac{1}{14} \min(\kappa^{1/3}, s) |A|,$$
+
+where $\kappa = |A + A| / |A|$.
+
+[Challenge.lean](LargeSumsetsFromSubsetsPalomar/Challenge.lean) contains these five statements,
+under the library names with a prime and with `sorry` placeholders, together with the
+definitions of `ArithmeticRemoval.removalConst` and of the constants from `bltCap` to
+`originalBltConstant`. [Solution.lean](LargeSumsetsFromSubsetsPalomar/Solution.lean) proves each
+statement by the library theorem without the prime. The library and the solution contain no
+`sorry`, and the theorems depend on no axioms other than `propext`, `Classical.choice` and
+`Quot.sound`.
+
+| Other library declarations | Meaning |
+| --- | --- |
+| `exists_forall_exists_subset_min_lt_expect_card_add` | Theorem 1 with a constant that exists |
+| `exists_subset_min_le_expectSumset` | Theorem 1 for $K \ge 1$ and $0 < \varepsilon \le 1$, with the constant `bltSampleConst K ε`, subsets of at least $(1 - \varepsilon/4)\lvert A \rvert$ and $(1 - \varepsilon/4)\lvert B \rvert$ elements and non-strict inequalities |
+| `exists_subset_card_le_mul_sqrt_min_le_card_add` | Subsets $A' \subseteq A'' \subseteq A$ and $B' \subseteq B'' \subseteq B$ with $\lvert A' \rvert, \lvert B' \rvert$ at most `bltConstant σ ε * √(max #A #B)` and $\lvert A' + B' \rvert \ge \min((1 - \varepsilon)\lvert A'' + B'' \rvert, \sigma \lvert A'' \rvert, \sigma \lvert B'' \rvert)$ |
+| `exists_forall_exists_subset_card_sdiff_le_forall_add_ne` | Theorem 2 with a threshold that exists |
+| `exists_forall_exists_subset_card_sdiff_le_card_add_le` | Theorem 4 with a threshold that exists |
+| `bltSample` | The set of values of a sample `f : Fin k → A` |
+| `Sampling.expectSumset` | The expected size of the sumset of two samples |
+
+## Files
 
 | Files in `LargeSumsetsFromSubsets/` | Contents |
 | --- | --- |
-| `ArithmeticRemoval/TripartiteGraph.lean` | The tripartite graph of the equation `a + b = c` |
-| `ArithmeticRemoval.lean` | `removalConst` and the arithmetic removal lemma |
-| `Cleanup.lean` | The cleanup theorem and the covering bound |
+| `ArithmeticRemoval/TripartiteGraph.lean` | The tripartite graph of the equation $a + b = c$ |
+| `ArithmeticRemoval.lean` | `removalConst`, Theorems 2 and 3 |
+| `Cleanup.lean` | Theorem 4 and the covering bound |
 | `MediumSizedSubsets/Constants.lean` | The constants from `bltCap` to `bltSampleConst` |
 | `MediumSizedSubsets/Sampling.lean` | `bltSample` and the probability that a sum is sampled |
-| `MediumSizedSubsets/Potential.lean` | The minimizing pair `(X, Y)` |
-| `MediumSizedSubsets.lean` | The three forms of the Bollobás–Leader–Tiba theorem |
-| `FewTranslates.lean` | The Fox–Luo–Pham–Zhou theorem |
+| `MediumSizedSubsets/Potential.lean` | The minimizing pair $(X, Y)$ |
+| `MediumSizedSubsets.lean` | Theorem 1 and its other forms |
+| `FewTranslates.lean` | Theorem 5 |
 
-Bollobás, Leader and Tiba prove their theorem by applying Shao's theorem repeatedly. The proof
-here follows DenseSetsWithoutLargeSumsets instead. [formalization.yaml](formalization.yaml) records the
-differences from the sources, the scope, and the use of AI coding agents.
-
-## Verification
-
-[Challenge.lean](Challenge.lean) states the first form of the Bollobás–Leader–Tiba theorem, the
-arithmetic removal lemma, the positivity of `removalConst`, the cleanup theorem and the
-Fox–Luo–Pham–Zhou theorem with `sorry` placeholders. Its statements use Mathlib and seven
-definitions copied from the library: `removalConst` and the six constants from `bltCap` to
-`originalBltConstant`. [Solution.lean](Solution.lean) proves the five statements from the library.
-The library and solution contain no `sorry`. In `comparator.json` the six constants are listed
-under `definition_names`, so the comparator checks their types and takes their values from the
-solution. It compares `removalConst` in full.
+[formalization.yaml](formalization.yaml) records the sources, the differences from them, the
+scope, and the use of AI coding agents.
 
 ## Build
 
@@ -98,8 +112,22 @@ lake exe cache get
 lake build
 ```
 
-The default build includes the library, challenge, and solution. The `sorry` warnings from
-`Challenge.lean` are expected.
+The default build includes the library and the solution. `lake build Challenge` builds the
+challenge, and its five `sorry` warnings are expected.
+
+## Verification
+
+`Challenge.lean` imports only the Mathlib module `Mathlib.Combinatorics.SimpleGraph.Triangle.Removal`.
+It defines `ArithmeticRemoval.removalConst`, `bltCap`, `bltRho`, `bltDelta`, `bltAlpha`,
+`bltSampleConst` and `originalBltConstant` as the library does, with natural-number numerals so
+that the definitions contain no proofs, and states the five theorems above with `sorry`.
+[comparator.json](comparator.json) names these five theorems,
+`LargeSumsetsFromSubsetsPalomar.Challenge` and `LargeSumsetsFromSubsetsPalomar.Solution` as the
+modules to compare, no definition holes, so that the definitions of the solution must be those of
+the challenge, and `propext`, `Classical.choice` and `Quot.sound` as the permitted axioms. The two
+modules sit in `LargeSumsetsFromSubsetsPalomar/` rather than at the root, so that they do not
+clash with the `Challenge` and `Solution` modules of the projects this one requires or is
+required by.
 
 CI also runs `scripts/check-lean-sources.py`, `scripts/validate-formalization.rb` and
 `scripts/verify-comparator.sh`. The last one needs Linux with `bwrap`.

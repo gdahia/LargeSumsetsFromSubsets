@@ -136,12 +136,19 @@ end RemovedEdges
 
 /-- The threshold below which the number of solutions of `a + b = c` must lie in the arithmetic
 removal lemma, `exists_subset_card_sdiff_le_forall_add_ne`. It is a fixed multiple of the
-triangle removal bound, so in practice it is minuscule. -/
-noncomputable def removalConst (K ε : ℝ) : ℝ := triangleRemovalBound (ε / (36 * (1 + K) ^ 2)) / 2
+triangle removal bound, so in practice it is minuscule. The numerals are natural numbers, so that
+the definition contains no proofs. -/
+noncomputable def removalConst (K ε : ℝ) : ℝ :=
+  triangleRemovalBound (ε / ((36 : ℕ) * (1 + K) ^ 2)) / (2 : ℕ)
+
+/-- The removal threshold with real numerals. -/
+lemma removalConst_eq (K ε : ℝ) :
+    removalConst K ε = triangleRemovalBound (ε / (36 * (1 + K) ^ 2)) / 2 :=
+  rfl
 
 /-- The removal threshold is positive. -/
 lemma removalConst_pos {K ε : ℝ} (hK : 0 ≤ K) (hε : 0 < ε) : 0 < removalConst K ε :=
-  half_pos (triangleRemovalBound_pos (div_pos hε (by nlinarith)))
+  half_pos (triangleRemovalBound_pos (div_pos hε (by positivity)))
 
 omit [AddCommGroup G] [DecidableEq G] in
 /-- The tripartite graph over `W` has `3 * #W` vertices. -/
@@ -160,7 +167,7 @@ private lemma card_cliqueFinset_lt {X A B C : Finset G} {K ε δ : ℝ} (hXW : X
   have hXW' : (#X : ℝ) ≤ #W := by exact_mod_cast card_le_card hXW
   have hW : (0 : ℝ) < #W := hXW'.trans_lt' (by exact_mod_cast hX.card_pos)
   have hbound := triangleRemovalBound_pos (div_pos hε (by positivity : (0 : ℝ) < 36 * (1 + K) ^ 2))
-  rw [removalConst] at hδ'
+  rw [removalConst_eq] at hδ'
   rw [card_vertices]
   refine (Nat.cast_le.2 (card_cliqueFinset_le.trans card_triangleIndices_le)).trans_lt ?_
   push_cast
@@ -284,12 +291,11 @@ abelian group with `#(X + X) ≤ K * #X`, and let `A`, `B`, `C ⊆ X`. If `a + b
 and `ε`, then one can remove at most `ε * #X` elements from each of `A`, `B` and `C` so that no
 solution remains. -/
 theorem exists_subset_card_sdiff_le_forall_add_ne {X A B C : Finset G} {K ε δ : ℝ}
-    (hA : A ⊆ X) (hB : B ⊆ X) (hC : C ⊆ X) (hK : 0 ≤ K) (hXX : (#(X + X) : ℝ) ≤ K * #X)
-    (hε : 0 < ε) (hδ : 0 ≤ δ) (hδ' : δ ≤ removalConst K ε)
-    (hsol : (#(sumTriples A B C) : ℝ) ≤ δ * #X ^ 2) :
-    ∃ A' ⊆ A, ∃ B' ⊆ B, ∃ C' ⊆ C,
-      (#(A \ A') : ℝ) ≤ ε * #X ∧ (#(B \ B') : ℝ) ≤ ε * #X ∧ (#(C \ C') : ℝ) ≤ ε * #X ∧
-        ∀ a ∈ A', ∀ b ∈ B', ∀ c ∈ C', a + b ≠ c := by
+    (hA : A ⊆ X) (hB : B ⊆ X) (hC : C ⊆ X) (hK : 0 ≤ K) (hXX : #(X + X) ≤ K * #X) (hε : 0 < ε)
+    (hδ : 0 ≤ δ) (hδ' : δ ≤ removalConst K ε)
+    (hsol : #{x ∈ A ×ˢ B ×ˢ C | x.1 + x.2.1 = x.2.2} ≤ δ * #X ^ 2) :
+    ∃ A' ⊆ A, ∃ B' ⊆ B, ∃ C' ⊆ C, #(A \ A') ≤ ε * #X ∧ #(B \ B') ≤ ε * #X ∧ #(C \ C') ≤ ε * #X ∧
+      ∀ a ∈ A', ∀ b ∈ B', ∀ c ∈ C', a + b ≠ c := by
   obtain rfl | hX := X.eq_empty_or_nonempty
   · simp_all
   refine exists_subset_card_sdiff_le_forall_add_ne_aux (W := X ∪ (X + X)) hA hC subset_union_left
@@ -309,11 +315,10 @@ $\varepsilon |X|$ elements from each of $A$, $B$ and $C$ so that no solution rem
 theorem exists_forall_exists_subset_card_sdiff_le_forall_add_ne {K ε : ℝ} (hK : 0 ≤ K)
     (hε : 0 < ε) :
     ∃ δ > (0 : ℝ), ∀ {G : Type*} [AddCommGroup G] [DecidableEq G] {X A B C : Finset G},
-      A ⊆ X → B ⊆ X → C ⊆ X → (#(X + X) : ℝ) ≤ K * #X →
-      (#{x ∈ A ×ˢ B ×ˢ C | x.1 + x.2.1 = x.2.2} : ℝ) ≤ δ * #X ^ 2 →
-      ∃ A' ⊆ A, ∃ B' ⊆ B, ∃ C' ⊆ C,
-        (#(A \ A') : ℝ) ≤ ε * #X ∧ (#(B \ B') : ℝ) ≤ ε * #X ∧ (#(C \ C') : ℝ) ≤ ε * #X ∧
-          ∀ a ∈ A', ∀ b ∈ B', ∀ c ∈ C', a + b ≠ c :=
+      A ⊆ X → B ⊆ X → C ⊆ X → #(X + X) ≤ K * #X →
+      #{x ∈ A ×ˢ B ×ˢ C | x.1 + x.2.1 = x.2.2} ≤ δ * #X ^ 2 →
+      ∃ A' ⊆ A, ∃ B' ⊆ B, ∃ C' ⊆ C, #(A \ A') ≤ ε * #X ∧ #(B \ B') ≤ ε * #X ∧
+        #(C \ C') ≤ ε * #X ∧ ∀ a ∈ A', ∀ b ∈ B', ∀ c ∈ C', a + b ≠ c :=
   ⟨ArithmeticRemoval.removalConst K ε, ArithmeticRemoval.removalConst_pos hK hε,
     fun hA hB hC hXX hsol ↦ ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne hA hB hC
       hK hXX hε (ArithmeticRemoval.removalConst_pos hK hε).le le_rfl hsol⟩
