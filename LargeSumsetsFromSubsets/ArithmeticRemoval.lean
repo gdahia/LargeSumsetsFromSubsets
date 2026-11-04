@@ -14,25 +14,35 @@ import Mathlib.Tactic.Rify
 
 Let `X` be a finite subset of an abelian group with `#(X + X) ≤ K * #X`, and let `A`, `B`, `C` be
 subsets of `X`. If the equation `a + b = c` has at most `δ * #X ^ 2` solutions with `a ∈ A`,
-`b ∈ B`, `c ∈ C`, and `δ` is small enough in terms of `K` and `ε`, then one may delete at most
-`ε * #X` elements from each of `A`, `B`, `C` so that no solution remains. This is
-`LargeSumsetsFromSubsets.ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne`, whose
-threshold for `δ` is the explicit constant `removalConst K ε`, a fixed multiple of Mathlib's
-`triangleRemovalBound`. The form with an unspecified threshold is
-`LargeSumsetsFromSubsets.exists_forall_exists_subset_card_sdiff_le_forall_add_ne`.
+`b ∈ B`, `c ∈ C`, and `δ ≤ removalBound K ε`, then one may delete at most `ε * #X` elements from
+each of `A`, `B`, `C` so that no solution remains.
 
 The proof is the combinatorial argument of Král, Serra and Vena. The triangles of the tripartite
 graph of `LargeSumsetsFromSubsets.ArithmeticRemoval.TripartiteGraph`, built over the ambient set
 `W = X ∪ (X + X)`, are the solutions of `a + b = c` together with a translation parameter, so the
 solution bound makes the graph have few triangles and the triangle removal lemma deletes few edges.
 An edge between two parts of the graph carries a label, namely the difference of its endpoints, and
-the labels of the edges deleted between two fixed parts are counted by `removedLabelCard`; the
+the labels of the edges deleted between two fixed parts are counted by `removedLabelCard`. The
 labels for which many edges were deleted are few, and discarding them from `A`, `B` and `C` destroys
 every solution, since a surviving solution would produce `#X` triangles of which at most
 `3 / 4 * #X` could have been hit.
 
 The small doubling hypothesis enters only through the comparison of `#W` with `#X`: it is what makes
 a triangle count of order `#X ^ 3` small compared to the cube of the number of vertices.
+
+## Main definitions
+
+* `LargeSumsetsFromSubsets.ArithmeticRemoval.removalBound K ε`: the threshold for `δ`, a fixed
+  multiple of Mathlib's `triangleRemovalBound`.
+* `LargeSumsetsFromSubsets.ArithmeticRemoval.removedLabelCard H H' p q a`: the number of edges of
+  `H` with label `a` between the parts `p` and `q` that are deleted in the subgraph `H'`.
+
+## Main statements
+
+* `LargeSumsetsFromSubsets.ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne`: the
+  arithmetic removal lemma in a set of small doubling.
+* `LargeSumsetsFromSubsets.ArithmeticRemoval.card_filter_lt_mul_le_sum`: Markov's inequality for a
+  finite sum of nonnegative terms.
 -/
 
 @[expose] public section
@@ -44,8 +54,8 @@ namespace LargeSumsetsFromSubsets.ArithmeticRemoval
 
 variable {G : Type*} [AddCommGroup G] [DecidableEq G] {W : Finset G}
 
-/-- Markov's inequality for a finite sum of nonnegative terms: the terms exceeding `m` number at
-most `(∑ a ∈ s, f a) / m`. -/
+/-- **Markov's inequality** for a finite sum of nonnegative terms: the terms exceeding `m` number
+at most `(∑ a ∈ s, f a) / m`. -/
 lemma card_filter_lt_mul_le_sum {ι : Type*} (s : Finset ι) {f : ι → ℝ} (hf : ∀ a ∈ s, 0 ≤ f a)
     (m : ℝ) : #{a ∈ s | m < f a} * m ≤ ∑ a ∈ s, f a := by
   rw [← nsmul_eq_mul]
@@ -62,12 +72,12 @@ variable {V : Type*} [Fintype V] (H H' : SimpleGraph V) [DecidableRel H.Adj] [De
 /-- The pairs `(u, v)` of elements of the ambient set `W` such that the edge joining `p u` to `q v`
 belongs to `H` but not to the subgraph `H'`. -/
 def removedPairs (p q : ↥W → V) : Finset (↥W × ↥W) :=
-  {z ∈ univ | H.Adj (p z.1) (q z.2) ∧ ¬ H'.Adj (p z.1) (q z.2)}
+  {(u, v) | H.Adj (p u) (q v) ∧ ¬ H'.Adj (p u) (q v)}
 
 /-- The number of edges of `H` between the parts `p` and `q` that are deleted in `H'` and carry the
 label `a`, that is, whose endpoints differ by `a`. -/
 def removedLabelCard (p q : ↥W → V) (a : G) : ℕ :=
-  #{z ∈ removedPairs H H' p q | (z.2 : G) - z.1 = a}
+  #((removedPairs H H' p q).filter fun (u, v) ↦ (v : G) - u = a)
 
 variable {H H'}
 
@@ -94,7 +104,8 @@ of deleted edges. -/
 lemma sum_removedLabelCard {p q : ↥W → V} {L : Finset G}
     (hL : ∀ u v : ↥W, H.Adj (p u) (q v) → (v : G) - u ∈ L) :
     ∑ a ∈ L, removedLabelCard H H' p q a = #(removedPairs H H' p q) := by
-  refine (card_eq_sum_card_fiberwise ?_).symm
+  unfold removedLabelCard
+  refine (card_eq_sum_card_fiberwise (f := fun ((u, v) : ↥W × ↥W) ↦ (v : G) - u) ?_).symm
   rintro ⟨u, v⟩ hz
   simp_all [removedPairs]
 
@@ -109,13 +120,15 @@ lemma card_filter_lt_removedLabelCard_mul_le (hle : H' ≤ H) {p q : ↥W → V}
   rw [add_sub_cancel_right, ← sum_removedLabelCard hL, Nat.cast_sum]
   exact card_filter_lt_mul_le_sum L (fun _ _ ↦ by positivity) m
 
-/-- If at most `ε * x ^ 2 / 4` edges are deleted, then at most `ε * x` labels carry more than
-`x / 4` deleted edges. -/
-lemma card_filter_lt_removedLabelCard_le (hle : H' ≤ H) {p q : ↥W → V}
+/-- If at most `ε * x ^ 2 / 4` edges are deleted, then keeping the labels with at most `x / 4`
+deleted edges discards at most `ε * x` labels. -/
+lemma card_sdiff_filter_removedLabelCard_le (hle : H' ≤ H) {p q : ↥W → V}
     (hp : Function.Injective p) (hq : Function.Injective q) (hpq : ∀ u v, p u ≠ q v) {L : Finset G}
     (hL : ∀ u v : ↥W, H.Adj (p u) (q v) → (v : G) - u ∈ L) {x ε : ℝ} (hx : 0 < x)
     (hedge : #H.edgeFinset - #H'.edgeFinset ≤ ε * x ^ 2 / 4) :
-    #{a ∈ L | x / 4 < removedLabelCard H H' p q a} ≤ ε * x := by
+    #(L \ {a ∈ L | removedLabelCard H H' p q a ≤ x / 4}) ≤ ε * x := by
+  rw [← filter_not]
+  simp only [not_le]
   refine le_of_mul_le_mul_right ?_ hx
   nlinarith [(card_filter_lt_removedLabelCard_mul_le hle hp hq hpq hL (x / 4)).trans hedge]
 
@@ -126,7 +139,7 @@ lemma card_filter_not_adj_le_removedLabelCard {ι : Type*} [Fintype ι] {p q : �
     {f g : ι → ↥W} (hf : Function.Injective f) {a : G} (hadj : ∀ i, H.Adj (p (f i)) (q (g i)))
     (hlab : ∀ i, (g i : G) - f i = a) :
     #{i | ¬ H'.Adj (p (f i)) (q (g i))} ≤ removedLabelCard H H' p q a := by
-  apply card_le_card_of_injOn (fun i ↦ (f i, g i))
+  apply card_le_card_of_injOn fun i ↦ (f i, g i)
   · intro i hi
     simp_all [removedPairs]
   · intro i _ j _ h
@@ -136,11 +149,11 @@ end RemovedEdges
 
 /-- The threshold below which the number of solutions of `a + b = c` must lie in the arithmetic
 removal lemma, `exists_subset_card_sdiff_le_forall_add_ne`. It is a fixed multiple of the triangle
-removal bound, so in practice it is minuscule. -/
-noncomputable def removalConst (K ε : ℝ) : ℝ := triangleRemovalBound (ε / (36 * (1 + K) ^ 2)) / 2
+removal bound. -/
+noncomputable def removalBound (K ε : ℝ) : ℝ := triangleRemovalBound (ε / (36 * (1 + K) ^ 2)) / 2
 
 /-- The removal threshold is positive. -/
-lemma removalConst_pos {K ε : ℝ} (hK : 0 ≤ K) (hε : 0 < ε) : 0 < removalConst K ε :=
+lemma removalBound_pos {K ε : ℝ} (hK : 0 ≤ K) (hε : 0 < ε) : 0 < removalBound K ε :=
   half_pos (triangleRemovalBound_pos (div_pos hε (by positivity)))
 
 omit [AddCommGroup G] [DecidableEq G] in
@@ -150,10 +163,10 @@ private lemma card_vertices : (Fintype.card (↥W ⊕ ↥W ⊕ ↥W) : ℝ) = 3 
   ring
 
 /-- Few solutions make few triangles: if `a + b = c` has at most `δ * #X ^ 2` solutions, with `δ` at
-most `removalConst K ε`, then the tripartite graph over `W ⊇ X` has fewer triangles than the
+most `removalBound K ε`, then the tripartite graph over `W ⊇ X` has fewer triangles than the
 triangle removal lemma requires. -/
 private lemma card_cliqueFinset_lt {X A B C : Finset G} {K ε δ : ℝ} (hXW : X ⊆ W) (hK : 0 ≤ K)
-    (hε : 0 < ε) (hX : X.Nonempty) (hδ : δ ≤ removalConst K ε)
+    (hε : 0 < ε) (hX : X.Nonempty) (hδ : δ ≤ removalBound K ε)
     (hsol : #(sumTriples A B C) ≤ δ * #X ^ 2) :
     #((tripartiteGraph W A B C).cliqueFinset 3)
       < triangleRemovalBound (ε / (36 * (1 + K) ^ 2)) * Fintype.card (↥W ⊕ ↥W ⊕ ↥W) ^ 3 := by
@@ -161,18 +174,20 @@ private lemma card_cliqueFinset_lt {X A B C : Finset G} {K ε δ : ℝ} (hXW : X
   have hbound := triangleRemovalBound_pos (div_pos hε (by positivity : (0 : ℝ) < 36 * (1 + K) ^ 2))
   grw [card_cliqueFinset_le, card_triangleIndices_le, card_vertices]
   push_cast
-  grw [hsol, hδ, removalConst, card_le_card hXW]
+  grw [hsol, hδ, removalBound, card_le_card hXW]
   linarith [mul_pos hbound (pow_pos hW 3)]
 
 omit [AddCommGroup G] [DecidableEq G] in
 /-- The removal parameter is chosen so that the triangle removal lemma deletes at most
 `ε * #X ^ 2 / 4` edges, as long as `#W ≤ (1 + K) * #X`. -/
-private lemma removal_mul_card_sq_le {X : Finset G} {K ε : ℝ} (hK : 0 ≤ K) (hε : 0 < ε)
+private lemma div_mul_card_vertices_sq_le {X : Finset G} {K ε : ℝ} (hK : 0 ≤ K) (hε : 0 < ε)
     (hW : #W ≤ (1 + K) * #X) :
     ε / (36 * (1 + K) ^ 2) * ((Fintype.card (↥W ⊕ ↥W ⊕ ↥W) ^ 2 : ℕ) : ℝ) ≤ ε * #X ^ 2 / 4 := by
   push_cast
-  rw [card_vertices, div_mul_eq_mul_div, div_le_div_iff₀ (by positivity) (by norm_num)]
-  nlinarith [mul_le_mul_of_nonneg_left (pow_le_pow_left₀ (by positivity) hW 2) hε.le]
+  grw [card_vertices, hW]
+  apply le_of_eq
+  field_simp
+  ring
 
 /-- The map `x ↦ x + t` from `X` to the ambient set `W`. -/
 private def shiftIn {X : Finset G} {t : G} (h : ∀ x ∈ X, x + t ∈ W) : ↥X → ↥W :=
@@ -187,9 +202,8 @@ private lemma coe_shiftIn {X : Finset G} {t : G} (h : ∀ x ∈ X, x + t ∈ W) 
 omit [DecidableEq G] in
 /-- Translation is injective. -/
 private lemma shiftIn_injective {X : Finset G} {t : G} (h : ∀ x ∈ X, x + t ∈ W) :
-    Function.Injective (shiftIn h) := by
-  intro x y hxy
-  exact Subtype.ext (add_right_cancel (congrArg Subtype.val hxy))
+    Function.Injective (shiftIn h) :=
+  Subtype.map_injective h (add_left_injective t)
 
 /-- A solution `a + b = c` gives the `#X` triangle indices `(x, x + a, x + c)` with `x ∈ X`. A
 triangle-free subgraph `H'` misses an edge of each of them, so the labels `a`, `b` and `c` together
@@ -226,35 +240,32 @@ private lemma card_le_removedLabelCard_add {X A B C : Finset G}
 `X` and all the sums `x + y` with `x, y ∈ X`, and be comparable in size to `X`. The middle set `B`
 is unconstrained, since an element of `B` outside `X - X` takes part in no solution anyway. The sets
 `A'`, `B'`, `C'` keep the labels carrying at most `#X / 4` deleted edges. -/
-private lemma exists_subset_card_sdiff_le_forall_add_ne_aux {X A B C W : Finset G} {K ε δ : ℝ}
-    (hA : A ⊆ X) (hC : C ⊆ X) (hXW : X ⊆ W) (hXXW : ∀ x ∈ X, ∀ y ∈ X, x + y ∈ W)
+private lemma exists_subset_card_sdiff_le_forall_add_ne_of_subset {X A B C W : Finset G}
+    {K ε δ : ℝ} (hA : A ⊆ X) (hC : C ⊆ X) (hXW : X ⊆ W) (hXXW : ∀ x ∈ X, ∀ y ∈ X, x + y ∈ W)
     (hW : #W ≤ (1 + K) * #X) (hK : 0 ≤ K) (hε : 0 < ε) (hX : X.Nonempty)
-    (hδ : δ ≤ removalConst K ε) (hsol : #(sumTriples A B C) ≤ δ * #X ^ 2) :
+    (hδ : δ ≤ removalBound K ε) (hsol : #(sumTriples A B C) ≤ δ * #X ^ 2) :
     ∃ A' ⊆ A, ∃ B' ⊆ B, ∃ C' ⊆ C, #(A \ A') ≤ ε * #X ∧ #(B \ B') ≤ ε * #X ∧ #(C \ C') ≤ ε * #X ∧
       ∀ a ∈ A', ∀ b ∈ B', ∀ c ∈ C', a + b ≠ c := by
   obtain ⟨H', hle, _, hedge, hfree⟩ :=
     triangle_removal (card_cliqueFinset_lt hXW hK hε hX hδ hsol)
   have hXpos : (0 : ℝ) < #X := by exact_mod_cast hX.card_pos
   have hedge' : #(tripartiteGraph W A B C).edgeFinset - #H'.edgeFinset ≤ ε * #X ^ 2 / 4 :=
-    hedge.le.trans (removal_mul_card_sq_le hK hε hW)
-  refine ⟨{a ∈ A | (removedLabelCard (tripartiteGraph W A B C) H' in₀ in₁ a : ℝ) ≤ #X / 4},
+    hedge.le.trans (div_mul_card_vertices_sq_le hK hε hW)
+  refine ⟨{a ∈ A | removedLabelCard (tripartiteGraph W A B C) H' in₀ in₁ a ≤ (#X : ℝ) / 4},
     filter_subset _ _,
-    {b ∈ B | (removedLabelCard (tripartiteGraph W A B C) H' in₁ in₂ b : ℝ) ≤ #X / 4},
+    {b ∈ B | removedLabelCard (tripartiteGraph W A B C) H' in₁ in₂ b ≤ (#X : ℝ) / 4},
     filter_subset _ _,
-    {c ∈ C | (removedLabelCard (tripartiteGraph W A B C) H' in₀ in₂ c : ℝ) ≤ #X / 4},
+    {c ∈ C | removedLabelCard (tripartiteGraph W A B C) H' in₀ in₂ c ≤ (#X : ℝ) / 4},
     filter_subset _ _, ?_, ?_, ?_, ?_⟩
-  · rw [← filter_not]
-    simpa using card_filter_lt_removedLabelCard_le (p := in₀) (q := in₁) hle
-      Sum.inl_injective (Sum.inr_injective.comp Sum.inl_injective) (fun _ _ ↦ Sum.inl_ne_inr)
-      (fun _ _ ↦ sub_mem_of_adj_in₀_in₁) hXpos hedge'
-  · rw [← filter_not]
-    simpa using card_filter_lt_removedLabelCard_le (p := in₁) (q := in₂) hle
-      (Sum.inr_injective.comp Sum.inl_injective) (Sum.inr_injective.comp Sum.inr_injective)
-      (fun _ _ h ↦ by simp at h) (fun _ _ ↦ sub_mem_of_adj_in₁_in₂) hXpos hedge'
-  · rw [← filter_not]
-    simpa using card_filter_lt_removedLabelCard_le (p := in₀) (q := in₂) hle
-      Sum.inl_injective (Sum.inr_injective.comp Sum.inr_injective) (fun _ _ ↦ Sum.inl_ne_inr)
-      (fun _ _ ↦ sub_mem_of_adj_in₀_in₂) hXpos hedge'
+  · exact card_sdiff_filter_removedLabelCard_le hle Sum.inl_injective
+      (Sum.inr_injective.comp Sum.inl_injective) (by simp) (fun _ _ ↦ sub_mem_of_adj_in₀_in₁)
+      hXpos hedge'
+  · exact card_sdiff_filter_removedLabelCard_le hle (Sum.inr_injective.comp Sum.inl_injective)
+      (Sum.inr_injective.comp Sum.inr_injective) (by simp) (fun _ _ ↦ sub_mem_of_adj_in₁_in₂)
+      hXpos hedge'
+  · exact card_sdiff_filter_removedLabelCard_le hle Sum.inl_injective
+      (Sum.inr_injective.comp Sum.inr_injective) (by simp) (fun _ _ ↦ sub_mem_of_adj_in₀_in₂)
+      hXpos hedge'
   intro a ha b hb c hc habc
   obtain ⟨ha, ha'⟩ := mem_filter.1 ha
   obtain ⟨hb, hb'⟩ := mem_filter.1 hb
@@ -267,40 +278,19 @@ private lemma exists_subset_card_sdiff_le_forall_add_ne_aux {X A B C W : Finset 
 
 /-- **Arithmetic removal lemma in a set of small doubling.** Let `X` be a finite subset of an
 abelian group with `#(X + X) ≤ K * #X`, and let `A`, `B`, `C ⊆ X`. If `a + b = c` has at most
-`δ * #X ^ 2` solutions with `a ∈ A`, `b ∈ B`, `c ∈ C`, where `δ` is small enough in terms of `K` and
-`ε`, then one can remove at most `ε * #X` elements from each of `A`, `B` and `C` so that no solution
-remains. -/
-theorem exists_subset_card_sdiff_le_forall_add_ne {X A B C : Finset G} {K ε δ : ℝ}
+`δ * #X ^ 2` solutions with `a ∈ A`, `b ∈ B`, `c ∈ C`, where `δ ≤ removalBound K ε`, then one can
+remove at most `ε * #X` elements from each of `A`, `B` and `C` so that no solution remains. -/
+lemma exists_subset_card_sdiff_le_forall_add_ne {X A B C : Finset G} {K ε δ : ℝ}
     (hA : A ⊆ X) (hB : B ⊆ X) (hC : C ⊆ X) (hK : 0 ≤ K) (hXX : #(X + X) ≤ K * #X) (hε : 0 < ε)
-    (hδ : δ ≤ removalConst K ε) (hsol : #(sumTriples A B C) ≤ δ * #X ^ 2) :
+    (hδ : δ ≤ removalBound K ε) (hsol : #(sumTriples A B C) ≤ δ * #X ^ 2) :
     ∃ A' ⊆ A, ∃ B' ⊆ B, ∃ C' ⊆ C, #(A \ A') ≤ ε * #X ∧ #(B \ B') ≤ ε * #X ∧ #(C \ C') ≤ ε * #X ∧
       ∀ a ∈ A', ∀ b ∈ B', ∀ c ∈ C', a + b ≠ c := by
   obtain rfl | hX := X.eq_empty_or_nonempty
   · simp_all
-  refine exists_subset_card_sdiff_le_forall_add_ne_aux (W := X ∪ (X + X)) hA hC subset_union_left
-    (fun x hx y hy ↦ mem_union_right _ (add_mem_add hx hy)) ?_ hK hε hX hδ hsol
+  refine exists_subset_card_sdiff_le_forall_add_ne_of_subset (W := X ∪ (X + X)) hA hC
+    subset_union_left (fun x hx y hy ↦ mem_union_right _ (add_mem_add hx hy)) ?_ hK hε hX hδ hsol
   grw [card_union_le]
   push_cast
   linarith
 
 end LargeSumsetsFromSubsets.ArithmeticRemoval
-
-namespace LargeSumsetsFromSubsets
-
-/-- **Arithmetic removal lemma in a set of small doubling.** For `K ≥ 0` and `ε > 0` there is
-`δ > 0` with the following property. Let `X` be a finite subset of an abelian group with
-`#(X + X) ≤ K * #X` and let `A, B, C ⊆ X`. If `a + b = c` has at most `δ * #X ^ 2` solutions with
-`a ∈ A`, `b ∈ B` and `c ∈ C`, then one can remove at most `ε * #X` elements from each of `A`, `B`
-and `C` so that no solution remains. -/
-theorem exists_forall_exists_subset_card_sdiff_le_forall_add_ne {K ε : ℝ} (hK : 0 ≤ K)
-    (hε : 0 < ε) :
-    ∃ δ > (0 : ℝ), ∀ {G : Type*} [AddCommGroup G] [DecidableEq G] {X A B C : Finset G},
-      A ⊆ X → B ⊆ X → C ⊆ X → #(X + X) ≤ K * #X →
-      #{x ∈ A ×ˢ B ×ˢ C | x.1 + x.2.1 = x.2.2} ≤ δ * #X ^ 2 →
-      ∃ A' ⊆ A, ∃ B' ⊆ B, ∃ C' ⊆ C, #(A \ A') ≤ ε * #X ∧ #(B \ B') ≤ ε * #X ∧ #(C \ C') ≤ ε * #X ∧
-        ∀ a ∈ A', ∀ b ∈ B', ∀ c ∈ C', a + b ≠ c :=
-  ⟨ArithmeticRemoval.removalConst K ε, ArithmeticRemoval.removalConst_pos hK hε,
-    fun hA hB hC hXX hsol ↦
-      ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne hA hB hC hK hXX hε le_rfl hsol⟩
-
-end LargeSumsetsFromSubsets

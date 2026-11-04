@@ -5,7 +5,7 @@ Authors: Gabriel Dahia
 -/
 module
 
-public import LargeSumsetsFromSubsets.ArithmeticProgression
+public import LargeSumsetsFromSubsets.ArithmeticProgression.Basic
 import Mathlib.Algebra.Field.ZMod
 import Mathlib.Data.Rat.Cast.Order
 import Mathlib.Tactic.Abel
@@ -40,28 +40,11 @@ open Finset
 
 namespace LargeSumsetsFromSubsets
 
-section AddCommGroup
-
-variable {G : Type*} [AddCommGroup G] [DecidableEq G]
-
-/-- Reversing an arithmetic progression changes the sign of its common difference. -/
-lemma arithProg_neg (a d : G) (n : ℕ) : arithProg a (-d) n = arithProg (a - (n - 1) • d) d n := by
-  ext x
-  simp only [mem_arithProg]
-  constructor <;>
-  · rintro ⟨i, hi, rfl⟩
-    obtain ⟨j, rfl⟩ := Nat.exists_eq_add_of_lt hi
-    refine ⟨j, by grind, ?_⟩
-    rw [(by grind : i + j + 1 - 1 = j + i), add_nsmul, smul_neg]
-    abel
-
 /-- The terms of `arithProg a d n` in a set `Q` are at most as many as their indices. -/
-private lemma card_arithProg_inter_le_card_filter (a d : G) (n : ℕ) (Q : Finset G) :
-    #(arithProg a d n ∩ Q) ≤ #{i ∈ range n | a + i • d ∈ Q} := by
+private lemma card_arithProg_inter_le_card_filter {G : Type*} [AddCommMonoid G] [DecidableEq G]
+    (a d : G) (n : ℕ) (Q : Finset G) : #(arithProg a d n ∩ Q) ≤ #{i ∈ range n | a + i • d ∈ Q} := by
   rw [arithProg, ← filter_mem_eq_inter, filter_image]
   exact card_image_le
-
-end AddCommGroup
 
 /-- A set of indices below `n` with more than `(n + k) / 2` elements contains two indices at
 distance `k`. -/

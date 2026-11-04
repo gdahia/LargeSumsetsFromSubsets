@@ -4,19 +4,15 @@ version: "v0.4"
 project:
   name: "Large sumsets from medium-sized subsets"
   description: >-
-    Lean 4 formalization of the results of Bollobás, Leader and Tiba, Large sumsets from
-    medium-sized subsets. Theorem 2: in an abelian group, for finite A and B and integers
-    c₁ ≤ |A| and c₂ ≤ |B| with c₁c₂ > c(σ, ε) max(|A|, |B|), there are subsets A₀ and B₀
-    containing all but an ε proportion of A and B such that c₁ random points of A₀ and c₂ random
-    points of B₀ have a sumset of expected size greater than min((1 - ε)|A₀ + B₀|, σ|A₀|,
-    σ|B₀|). It is proved with the arithmetic removal lemma for subsets of a set of small
-    doubling, deduced from Mathlib's triangle removal lemma, in place of Shao's almost-all
-    Balog–Szemerédi–Gowers theorem. Theorem 1: for A, B ⊆ Z_p with α|B| ≤ |A| ≤ α⁻¹|B| and
+    Lean 4 formalization of the main results of Bollobás, Leader and Tiba, Large sumsets from
+    medium-sized subsets. Theorem 1: for A, B ⊆ Z_p with α|B| ≤ |A| ≤ α⁻¹|B| and
     |A| + |B| ≤ (1 - β)p, and c₁c₂ ≥ c(α, β) max(|A|, |B|), there are A' ⊆ A and B' ⊆ B with c₁
-    and c₂ elements and |A' + B'| ≥ |A| + |B| - 1. Theorems 4 and 5 of the paper, which it
-    quotes from the authors' Large sumsets from small subsets, come from the formalization
-    LargeSumsetsFromSmallSubsets, which proves Theorem 5 in a weaker form; the proof of Theorem 8
-    is adapted to that form.
+    and c₂ elements and |A' + B'| ≥ |A| + |B| - 1. Theorem 2: in an abelian group, for finite A
+    and B and integers c₁ ≤ |A| and c₂ ≤ |B| with c₁c₂ > c(σ, ε) max(|A|, |B|), there are subsets
+    A₀ and B₀ containing all but an ε proportion of A and B such that c₁ random points of A₀ and
+    c₂ random points of B₀ have a sumset of expected size greater than min((1 - ε)|A₀ + B₀|,
+    σ|A₀|, σ|B₀|). The results that the paper quotes from the authors' Large sumsets from small
+    subsets come from the formalization LargeSumsetsFromSmallSubsets.
   authors:
     - "Gabriel Dahia"
   license: "Apache-2.0"
@@ -38,9 +34,10 @@ sources:
     location: "https://arxiv.org/abs/2206.09366v1"
     relationship: "formalizes"
     note: >-
-      Theorems 1, 2, 6 and 8, Lemmas 9, 10 and 12 and Corollary 11. Theorem 2 is proved
-      without Theorem 3 (Shao). Theorems 4 and 5 are imported from LargeSumsetsFromSmallSubsets,
-      Theorem 5 in a weaker form. See fidelity.divergences.
+      Theorems 1 and 2. Theorem 2 is proved without Theorem 3 of the paper (Shao). The proof of
+      Theorem 1 uses a weaker form of Theorem 5 of the paper, with the subsets of B depending on
+      the set A, and its sample of Y is adapted to that form as explained in simplified_proof.tex.
+      See fidelity.divergences.
     license: "unknown"
     author_endorsement: "not-contacted"
   - title: "Large sumsets from small subsets"
@@ -53,21 +50,12 @@ sources:
     location: "https://arxiv.org/abs/2204.07559v2"
     relationship: "background"
     note: >-
-      Corollary 24 is Theorem 4 of the formalized paper, and Theorem 31 is its Theorem 5. Both
-      are used through the formalization LargeSumsetsFromSmallSubsets, Theorem 31 in the form
-      where the subsets of B depend on the set A.
+      The formalized paper quotes Corollary 24 and Theorem 31 of this paper as its Theorems 4 and
+      5. Both are used in the proof of Theorem 1 through the formalization
+      LargeSumsetsFromSmallSubsets, Theorem 31 in the form where the subsets of B depend on the
+      set A.
     license: "unknown"
     author_endorsement: "not-contacted"
-  - title: "Structural additive theory"
-    authors:
-      - "David J. Grynkiewicz"
-    id: "https://doi.org/10.1007/978-3-319-00416-7"
-    type: "book"
-    relationship: "background"
-    note: >-
-      Developments in Mathematics 30, Springer, 2013. The formalized paper deduces its
-      Theorem 4 from Theorem 21.8 of the book. Here Theorem 4 is Corollary 24 of Large sumsets
-      from small subsets, as proved in LargeSumsetsFromSmallSubsets.
   - title: "On an almost all version of the Balog–Szemerédi–Gowers theorem"
     authors:
       - "Xuancheng Shao"
@@ -76,9 +64,11 @@ sources:
     location: "https://arxiv.org/abs/1811.10707"
     relationship: "adapts"
     note: >-
-      Discrete Analysis 2019:18. The cleanup theorem is a variant of Theorem 1.1 that assumes
-      that the full sumset is small. The arithmetic removal lemma is Corollary 2.5, proved as in
-      the remark that follows it. See fidelity.divergences.
+      Discrete Analysis 2019:18. The formalized paper proves Theorem 2 with Theorem 1.1 of this
+      paper. The proof here instead minimizes min(|X + Y|, D|X|, D|Y|) + Λ(|A \ X| + |B \ Y|) over
+      pairs of subsets and removes the sums of a minimizer that are not popular with a variant of
+      Theorem 1.1 that assumes that the full sumset is small, proved from Corollary 2.5 of this
+      paper as in the remark that follows it.
     license: "unknown"
     author_endorsement: "not-contacted"
   - title: "A combinatorial proof of the removal lemma for groups"
@@ -90,45 +80,30 @@ sources:
     type: "paper"
     relationship: "adapts"
     note: >-
-      J. Combin. Theory Ser. A 116 (2009), 971–978. The proof of the arithmetic removal lemma
-      uses the tripartite graph of this paper, with vertex classes X ∪ (X + X) in place of the
-      group.
+      J. Combin. Theory Ser. A 116 (2009), 971–978. The proof of Theorem 2 uses the tripartite
+      graph of this paper, with vertex classes X ∪ (X + X) in place of the group, to deduce
+      Corollary 2.5 of Shao from the triangle removal lemma of Mathlib.
     license: "unknown"
     author_endorsement: "not-contacted"
-  - title: "A Szemerédi-type regularity lemma in abelian groups, with applications"
-    authors:
-      - "Ben Green"
-    id: "https://doi.org/10.1007/s00039-005-0509-8"
-    type: "paper"
-    relationship: "background"
-    note: >-
-      Geom. Funct. Anal. 15 (2005), 340–376. The arithmetic removal lemma for finite abelian
-      groups, which is formalized only in the form for subsets of a set of small doubling.
 
 related_formalizations:
   - id: "https://github.com/leanprover-community/mathlib4"
     relationship: "builds-on"
     note: >-
-      The statements use finite sets of an abelian group and of ZMod p, pointwise sums,
-      symmetric differences, Finset.expect and Finset.powersetCard. The proofs use the triangle
-      removal lemma, the Plünnecke–Ruzsa inequality and the Cauchy–Davenport theorem in ZMod p
-      and in ℤ. Mathlib has none of the results of the paper.
+      The statements use finite sets of an abelian group and of ZMod p, pointwise sums and
+      Finset.expect. The proofs use the triangle removal lemma, the Plünnecke–Ruzsa inequality,
+      the Cauchy–Davenport theorem in ZMod p and in ℤ, and Finset.addConvolution. Mathlib has
+      none of the results of the paper.
   - id: "https://github.com/gdahia/LargeSumsetsFromSmallSubsets"
     relationship: "builds-on"
     note: >-
-      A Lake dependency. Its Corollary 24 gives Theorem 4 of the paper, used for Theorems 1
-      and 6. Its form of Theorem 31, with the subsets of B depending on A, gives the form of
-      Theorem 5 used for Theorem 8.
+      A Lake dependency. Its Corollary 24 and its form of Theorem 31, with the subsets of B
+      depending on A, are used in the proof of Theorem 1.
 
 status:
   scope: >-
-    Theorems 1, 2, 6 and 8 of the paper, Lemmas 9 and 10, Corollary 11, Lemma 12 for one point,
-    and Theorem 8 for intervals of integers. Theorem 4 and a weaker form of Theorem 5, with the
-    subsets of B depending on A, come from the dependency LargeSumsetsFromSmallSubsets. Theorem
-    3 of the paper (Shao) is not used. The library also proves the arithmetic removal lemma for
-    subsets of a set of small doubling and the cleanup theorem, which replace Shao's theorem in
-    the proof of Theorem 2. The sorry counts refer to the library and Solution.lean;
-    Challenge.lean has one placeholder for each of its six statements.
+    Theorems 1 and 2 of the paper. The sorry counts refer to the library and Solution.lean;
+    Challenge.lean has one placeholder for each of its two statements.
   sorry_count: 0
   sorry_in_definitions: 0
   axioms: ["propext", "Classical.choice", "Quot.sound"]
@@ -154,7 +129,7 @@ automation:
       tool_setup: >-
         Lean 4, Mathlib, shell, and the arXiv sources of the paper and of arXiv:2204.07559v2.
         The coordinating agent fixed the statements and an informal proof with explicit
-        constants and delegated the proofs of individual modules to subagents.
+        constants and delegated the proofs and restyling of individual modules to subagents.
       cost:
         wall_time: "two sessions"
         spend_usd: "not tracked"
@@ -168,7 +143,8 @@ automation:
         LargeSumsetsFromSmallSubsets, adapting the proof of Theorem 8 to the weaker form of
         Theorem 5 proved there, and to write a note on the adapted proof. Later, one instruction
         to check the style against the author's conventions and adjust it. Later, one instruction
-        to restyle every module, including the main statements.
+        to restyle every module, including the main statements. Later, one instruction to make
+        the repository adhere to the author's Palomar submission and Lean project standards.
   spend_usd: "not tracked"
   notes: >-
     The first proofs of Theorem 2, the arithmetic removal lemma and the cleanup theorem were
@@ -180,57 +156,21 @@ automation:
     adapted the sample of Y in the proof of Theorem 8, and wrote simplified_proof.tex. Later,
     the agent restyled the changed modules and rewrote the docstrings without LaTeX. Later, the
     agent restyled every module and dropped the redundant casts from the main statements.
-    Every proof is checked by Lean.
+    Later, the agent restricted Challenge.lean, the README and this file to Theorems 1 and 2,
+    moved them to AddCommGroup.lean and ZMod.lean, split the proof of Theorem 1 into stage
+    modules, renamed the constants and several definitions, and restyled every module with
+    subagents working in parallel. Every proof is checked by Lean.
 
 fidelity:
   divergences: >-
-    Theorem 4 is stated as in the paper, with the progressions P and Q containing A and B. The
-    form of Theorem 5 used is weaker than the paper's: for each set A close to the interval I
-    there is one subset F ⊆ B with at most c elements and |A + F| ≥ |A| + |B| - 1, where the
-    paper has one family of c-subsets of B that works for every such A on average. It is stated
-    for intervals of integers. The proof of Theorem 8 is adapted: for each sampled class x of X
-    and each dense class y of Y, the subset given for the class x is added to the sample of Y.
-    With the largest class of X and t random classes, the sample of Y is t + 1 times larger, and
-    the constant c of Theorem 8 changes accordingly.
+    Theorem 1. The subsets A' and B' have exactly c₁ and c₂ elements.
 
     Theorem 2. The paper takes any real K; the Lean statement requires σ > 0 in its place. The
     hypothesis is c₁c₂ > c max(|A|, |B|) and the three conclusions are strict inequalities,
     where the paper has ≥ throughout. The sets A₀ and B₀ are nonempty. The random points are
     the values of uniformly random functions Fin c₁ → A₀ and Fin c₂ → B₀. The constant is
-    existentially quantified in Challenge.lean and is originalBltConstant σ ε in the library,
-    of tower type. The proof does not use Shao's theorem: it minimizes
-    min(|X + Y|, D|X|, D|Y|) + Λ(|A \ X| + |B \ Y|) over pairs of nonempty subsets, and reduces
-    the popular sums of a minimizer with the cleanup theorem or an elementary covering bound.
-
-    Theorem 6. The random sets are uniformly random subsets with c₁ and c₂ elements, as in the
-    paper. The progressions have a nonzero common difference.
-
-    Theorem 8 is stated for intervals of ZMod p with m + n ≤ p, as in the paper, and in the
-    library also for intervals of integers.
-
-    Theorem 1. The subsets A' and B' have exactly c₁ and c₂ elements.
-
-    Lemma 9. The constants 14 and 2⁵ of the paper are replaced by 30 and 2⁶, the error bounds
-    are 133γ min(|A|, |B|), and the end intervals have at least ⌊βp/8⌋ points. The property of
-    the end parts is that one of them, A ∩ I₁ or B ∩ J₁, is far from every arithmetic
-    progression P in the sense |A ∩ I₁| ≤ 64 |(A ∩ I₁) ∆ P|, or both are empty.
-
-    Lemma 10 is proved greedily under the hypotheses 2|W| + 4|X| ≤ |Y|, c₂ ≤ |Y| and
-    16|X| ≤ min(c₁, |X|) c₂, with subsets of at most c₁ and c₂ elements, in place of
-    8|X|, 8|W| ≤ |Y| < p/2. Corollary 11 is stated with a common bound for all pairs.
-    Lemma 12 is stated for one point of I₀.
-
-    Cleanup theorem. Shao's Theorem 1.1 takes |A| = |B| = N, a set Γ of at least
-    (1 - δ)N² pairs and |A +_Γ B| ≤ KN, and gives |A' + B'| ≤ |A +_Γ B| + εN. The Lean theorem
-    takes sets X and Y of any sizes and a set P, with Γ the pairs whose sum lies in P, assumes
-    |X + Y| ≤ D min(|X|, |Y|), which is stronger than Shao's hypothesis, and gives
-    |X₀ + Y₀| ≤ |P| + ρ min(|X|, |Y|).
-
-    Arithmetic removal lemma. The statement is that of Shao's Corollary 2.5, for subsets
-    A, B, C of a set X with |X + X| ≤ K|X|, K ≥ 0, with an existentially quantified threshold,
-    which is removalConst(K, ε) = triangleRemovalBound(ε / (36(1 + K)²)) / 2 in the library.
-    The removal lemma for a whole finite abelian group, as stated by Green, is not formalized
-    separately.
+    existentially quantified in Challenge.lean and is MediumSizedSubsets.c σ ε in the library,
+    of tower type.
 
 review:
   status: "unchecked"
@@ -244,67 +184,15 @@ alignment:
       lean: "LargeSumsetsFromSubsets.exists_subset_card_eq_card_add_card_sub_one_le_card_add'"
       module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
+      note: >-
+        Library form: exists_subset_card_eq_card_add_card_sub_one_le_card_add in
+        LargeSumsetsFromSubsets.ZMod.
     - source: "Theorem 2"
       lean: "LargeSumsetsFromSubsets.exists_forall_exists_subset_min_lt_expect_card_add'"
       module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
       note: >-
-        Library form with the explicit constant originalBltConstant σ ε:
-        exists_subset_min_lt_expect_card_add in LargeSumsetsFromSubsets.MediumSizedSubsets.
-    - source: "Theorem 6"
-      lean: "LargeSumsetsFromSubsets.exists_arithProg_card_symmDiff_le_of_expect_card_add_le'"
-      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
-      status: "proved"
-    - source: "Theorem 8"
-      lean: "LargeSumsetsFromSubsets.exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_image_range'"
-      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
-      status: "proved"
-      note: >-
-        For intervals of integers:
-        exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_Ico.
-    - source: "Theorem 4 (Corollary 24 of arXiv:2204.07559v2)"
-      lean: "LargeSumsetsFromSubsets.exists_subset_arithProg_card_sdiff_le_of_card_add_le"
-      module: "LargeSumsetsFromSubsets.ZModStability"
-      status: "proved"
-      note: "From Corollary 24 as proved in LargeSumsetsFromSmallSubsets."
-    - source: "Theorem 5 (Theorem 31 of arXiv:2204.07559v2)"
-      lean: "LargeSumsetsFromSubsets.exists_fewTranslatesInt"
-      module: "LargeSumsetsFromSubsets.IntervalSumsets.FewTranslates"
-      status: "partial"
-      note: >-
-        A weaker form for intervals of integers, with the subset of B depending on A, from the
-        form of Theorem 31 proved in LargeSumsetsFromSmallSubsets. See fidelity.divergences.
-    - source: "Lemma 9"
-      lean: "LargeSumsetsFromSubsets.exists_interval_ends"
-      module: "LargeSumsetsFromSubsets.IntervalEnds"
-      status: "proved"
-      note: "With the constants listed in fidelity.divergences."
-    - source: "Lemma 10"
-      lean: "LargeSumsetsFromSubsets.exists_subset_two_mul_card_le_card_add_sdiff"
-      module: "LargeSumsetsFromSubsets.Stickout"
-      status: "proved"
-    - source: "Corollary 11"
-      lean: "LargeSumsetsFromSubsets.exists_subsets_min_le_card_biUnion_add_sdiff"
-      module: "LargeSumsetsFromSubsets.Stickout"
-      status: "proved"
-    - source: "Lemma 12"
-      lean: "LargeSumsetsFromSubsets.exists_lt_disjoint_image_add_arithProg"
-      module: "LargeSumsetsFromSubsets.IntervalCovering"
-      status: "proved"
-      note: "For one point of I₀."
-    - source: "Shao, Corollary 2.5 (arithmetic removal in a set of small doubling)"
-      lean: "LargeSumsetsFromSubsets.exists_forall_exists_subset_card_sdiff_le_forall_add_ne'"
-      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
-      status: "proved"
-      note: >-
-        Library form with the threshold removalConst:
-        ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne.
-    - source: "Shao, Theorem 1.1 (variant)"
-      lean: "LargeSumsetsFromSubsets.exists_forall_exists_subset_card_sdiff_le_card_add_le'"
-      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
-      status: "proved"
-      note: >-
-        Assumes that the full sumset is small. Library form:
-        Cleanup.exists_subset_card_sdiff_le_card_add_le.
+        Library form with the explicit constant MediumSizedSubsets.c σ ε:
+        exists_subset_min_lt_expect_card_add in LargeSumsetsFromSubsets.AddCommGroup.
 
 acknowledgements: "Lean 4 and Mathlib; the Palomar registry template."

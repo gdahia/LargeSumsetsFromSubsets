@@ -5,10 +5,11 @@ Authors: Gabriel Dahia
 -/
 module
 
-public import LargeSumsetsFromSubsets.ArithmeticProgression
+public import LargeSumsetsFromSubsets.ArithmeticProgression.Basic
 public import Mathlib.Algebra.Order.Archimedean.Real.Basic
 import LargeSumsetsFromSubsets.ArithmeticProgression.NearInterval
 import Mathlib.Tactic.Positivity.Finset
+import Mathlib.Tactic.Rify
 
 /-!
 # The ends of the intervals
@@ -34,19 +35,25 @@ is far from every progression.
 
 * `LargeSumsetsFromSubsets.IsFarFromArithProg κ S`: every arithmetic progression `P` satisfies
   `#S ≤ κ * #(S ∆ P)`.
+* `LargeSumsetsFromSubsets.coords s X`: the local coordinates `(x - s).val` of the points `x ∈ X`.
+* `LargeSumsetsFromSubsets.IsGoodEnd α L ℓ`: `Ico L (L + ℓ)` is an admissible inner end for a set
+  `α` of local coordinates with outer end `range L`.
 * `LargeSumsetsFromSubsets.IsMaxNearInterval c A u M`: `arithProg u 1 M` is a longest interval
   within `c` of `A`.
 
 ## Main statements
 
+* `LargeSumsetsFromSubsets.isFarFromArithProg_inter_arithProg`: the part of `A` up to the shortest
+  admissible inner end is far from every arithmetic progression.
+* `LargeSumsetsFromSubsets.exists_left_end`, `LargeSumsetsFromSubsets.exists_right_end`: the
+  one-sided constructions.
 * `LargeSumsetsFromSubsets.exists_interval_ends`: Lemma 9.
 
 ## Implementation notes
 
-The one-sided construction is carried out in local coordinates: `coords s X` is the set of the
-`(x - s).val` for `x ∈ X`, which turns the intervals `arithProg (s + i) 1 n` with `i + n ≤ p` into
-the intervals `Ico i (i + n)` of `ℕ`. The admissible inner ends are described by `IsGoodEnd`. The
-right ends are the left ends of the reflected sets `A.image Neg.neg` and `B.image Neg.neg`. With
+The one-sided construction is carried out in local coordinates: `coords s X` turns the intervals
+`arithProg (s + i) 1 n` with `i + n ≤ p` into the intervals `Ico i (i + n)` of `ℕ`. The right ends
+are the left ends of the reflected sets `A.image Neg.neg` and `B.image Neg.neg`. With
 `c = ⌊γ * min #A #B⌋₊`, the inner ends have at most `33 * c` points, so the constants `133` and
 `266` of the statement are not tight.
 -/
@@ -76,7 +83,7 @@ lemma card_symmDiff_add_two_mul_card_inter (X Y : Finset α) :
   grind [card_sdiff_add_card_inter X Y, card_sdiff_add_card_inter Y X, inter_comm X Y]
 
 /-- Adding to `Y` a disjoint set `X` changes `#(A ∆ Y)` by `#X - 2 * #(A ∩ X)`. -/
-lemma card_symmDiff_union_add {A X Y : Finset α} (h : Disjoint X Y) :
+lemma card_symmDiff_union_add (A : Finset α) {X Y : Finset α} (h : Disjoint X Y) :
     #(A ∆ (X ∪ Y)) + 2 * #(A ∩ X) = #(A ∆ Y) + #X := by
   grind [card_symmDiff_add_two_mul_card_inter A (X ∪ Y), card_symmDiff_add_two_mul_card_inter A Y,
     inter_union_distrib_left A X Y, card_union_of_disjoint h, card_union_of_disjoint
@@ -110,54 +117,17 @@ lemma card_inter_add_card_inter_le (D : Finset α) {S T : Finset α} (h : Disjoi
 
 end Card
 
-section Neg
-
-variable {H : Type*} [AddCommGroup H] [DecidableEq H]
-
-/-- Negation maps arithmetic progressions to arithmetic progressions. -/
-lemma image_neg_arithProg (a d : H) (n : ℕ) :
-    (arithProg a d n).image Neg.neg = arithProg (-a) (-d) n := by
-  simp [arithProg, image_image, Function.comp_def, add_comm]
-
 /-- A set whose reflection is far from arithmetic progressions is far from them. -/
-lemma IsFarFromArithProg.of_image_neg {κ : ℕ} {S : Finset H}
-    (h : IsFarFromArithProg κ (S.image Neg.neg)) : IsFarFromArithProg κ S := by
+lemma IsFarFromArithProg.of_image_neg {H : Type*} [AddCommGroup H] [DecidableEq H] {κ : ℕ}
+    {S : Finset H} (h : IsFarFromArithProg κ (S.image Neg.neg)) : IsFarFromArithProg κ S := by
   intro a d n
   have := h (-a) (-d) n
   rwa [← image_neg_arithProg, ← image_symmDiff _ _ neg_injective,
     card_image_of_injective _ neg_injective, card_image_of_injective _ neg_injective] at this
 
-end Neg
-
 section Intervals
 
 variable {p : ℕ}
-
-/-- An interval splits into two consecutive intervals. -/
-lemma arithProg_one_add_eq_union (a : ZMod p) (m n : ℕ) :
-    arithProg a 1 (m + n) = arithProg a 1 m ∪ arithProg (a + m) 1 n := by
-  rw [arithProg_add, nsmul_one]
-
-/-- Two consecutive intervals of total length at most `p` are disjoint. -/
-lemma disjoint_arithProg_one (a : ZMod p) {m n : ℕ} (h : m + n ≤ p) :
-    Disjoint (arithProg a 1 m) (arithProg (a + m) 1 n) := by
-  rw [← card_union_eq_card_add_card, ← arithProg_one_add_eq_union, card_arithProg_one _ h,
-    card_arithProg_one _ (by grind), card_arithProg_one _ (by grind)]
-
-/-- The reflection of an interval is an interval of the same length. -/
-lemma image_neg_arithProg_one (a : ZMod p) (n : ℕ) :
-    (arithProg a 1 n).image Neg.neg = arithProg (-(a + n) + 1) 1 n := by
-  ext x
-  simp only [mem_image, mem_arithProg, nsmul_one]
-  constructor
-  · rintro ⟨_, ⟨i, hi, rfl⟩, rfl⟩
-    refine ⟨n - (1 + i), by grind, ?_⟩
-    push_cast [Nat.cast_sub (by grind : 1 + i ≤ n)]
-    ring
-  · rintro ⟨j, hj, rfl⟩
-    refine ⟨_, ⟨n - (1 + j), by grind, rfl⟩, ?_⟩
-    push_cast [Nat.cast_sub (by grind : 1 + j ≤ n)]
-    ring
 
 /-- The reflection of the part of `X` in an interval. -/
 lemma image_neg_inter_arithProg_one (X : Finset (ZMod p)) (t : ZMod p) (n : ℕ) :
@@ -168,7 +138,7 @@ lemma image_neg_inter_arithProg_one (X : Finset (ZMod p)) (t : ZMod p) (n : ℕ)
 
 /-- The start of the right end of the enlarged interval, as the reflection of the start of the left
 end of the reflected interval. -/
-lemma sub_natCast_add_natCast_eq_neg (u : ZMod p) {L M ℓ₁ ℓ₃ : ℕ} (h : ℓ₁ + ℓ₃ ≤ M) :
+lemma sub_natCast_add_natCast_eq_neg (u : ZMod p) (L : ℕ) {M ℓ₁ ℓ₃ : ℕ} (h : ℓ₁ + ℓ₃ ≤ M) :
     u - L + ((L + ℓ₁ + (M - (ℓ₁ + ℓ₃)) : ℕ) : ZMod p) =
       -(-(u + M) + 1 - L + ((L + ℓ₃ : ℕ) : ZMod p)) + 1 := by
   rw [(by grind : L + ℓ₁ + (M - (ℓ₁ + ℓ₃)) = L + (M - ℓ₃))]
@@ -180,8 +150,8 @@ lemma val_natCast_sub_natCast {k t : ℕ} (hk : k < p) (ht : t ≤ p) :
     ((k : ZMod p) - t).val = if t ≤ k then k - t else k + p - t := by
   split_ifs with h
   · rw [← Nat.cast_sub h, ZMod.val_natCast_of_lt (by grind)]
-  · rw [(by simp [Nat.cast_sub (by grind : t ≤ k + p)] :
-      (k : ZMod p) - t = ((k + p - t : ℕ) : ZMod p)), ZMod.val_natCast_of_lt (by grind)]
+  · rw [← ZMod.val_natCast_of_lt (by grind : k + p - t < p), Nat.cast_sub (by grind : t ≤ k + p)]
+    simp
 
 /-- `A` gains at most `M - n` points of symmetric difference when an interval `I` of length `M` is
 replaced by a subinterval of length `n`. -/
@@ -197,13 +167,6 @@ lemma card_symmDiff_arithProg_le (A : Finset (ZMod p)) (u : ZMod p) {ℓ n M : �
 def coords (s : ZMod p) (X : Finset (ZMod p)) : Finset ℕ := X.image fun x ↦ (x - s).val
 
 variable [NeZero p]
-
-/-- An interval of length more than `p` is the interval of length `p`. -/
-lemma arithProg_one_eq_min (a : ZMod p) (n : ℕ) : arithProg a 1 n = arithProg a 1 (min n p) := by
-  rcases le_total n p with h | h
-  · rw [min_eq_left h]
-  · rw [min_eq_right h, arithProg_one_eq_univ]
-    exact eq_univ_of_forall fun x ↦ arithProg_mono a 1 h (by simp [arithProg_one_eq_univ])
 
 /-- Local coordinates are injective. -/
 lemma coords_injective (s : ZMod p) : Function.Injective fun x : ZMod p ↦ (x - s).val :=
@@ -230,7 +193,7 @@ lemma mem_coords {s : ZMod p} {X : Finset (ZMod p)} {k : ℕ} :
   simp only [coords, mem_image]
   constructor
   · rintro ⟨x, hx, rfl⟩
-    exact ⟨ZMod.val_lt _, by rwa [ZMod.natCast_zmod_val, add_sub_cancel]⟩
+    exact ⟨ZMod.val_lt _, by simpa⟩
   · rintro ⟨hk, hX⟩
     exact ⟨_, hX, by simp [ZMod.val_natCast_of_lt hk]⟩
 
@@ -264,8 +227,7 @@ lemma card_inter_arithProg_eq (s : ZMod p) (X : Finset (ZMod p)) {n : ℕ} (h : 
 `n + ℓ ≤ p`. -/
 lemma exists_coords_arithProg_inter_range (s a : ZMod p) {n ℓ : ℕ} (h : n + ℓ ≤ p) :
     ∃ i j, coords s (arithProg a 1 n) ∩ range ℓ = Ico i j := by
-  obtain ⟨t, ht, rfl⟩ : ∃ t < p, a = s + t :=
-    ⟨(a - s).val, ZMod.val_lt _, by rw [ZMod.natCast_zmod_val, add_sub_cancel]⟩
+  obtain ⟨t, ht, rfl⟩ : ∃ t < p, a = s + t := ⟨(a - s).val, ZMod.val_lt _, by simp⟩
   refine ⟨if t + n ≤ p then t else 0, min ℓ (if t + n ≤ p then t + n else t + n - p), ?_⟩
   ext k
   rw [mem_inter, mem_coords_arithProg ht.le (by grind), mem_range, mem_Ico]
@@ -344,12 +306,11 @@ lemma isGoodEnd_of_card_symmDiff_le (hα : #(α ∆ Ico L (L + M)) ≤ c) (hc : 
     le_rfl, by linarith [card_Ico_symmDiff_inter_le hα hc, le_card_inter_Ico_add hα hc]⟩
 
 /-- The shortest admissible inner end has length at most `31 * c`. -/
-lemma exists_isGoodEnd_min (hα : #(α ∆ Ico L (L + M)) ≤ c) (hc : 31 * c ≤ M) :
-    ∃ ℓ ≤ 31 * c, IsGoodEnd α L ℓ ∧ ∀ ℓ' < ℓ, ¬IsGoodEnd α L ℓ' := by
+lemma exists_isLeast_isGoodEnd (hα : #(α ∆ Ico L (L + M)) ≤ c) (hc : 31 * c ≤ M) :
+    ∃ ℓ ≤ 31 * c, IsLeast {ℓ | IsGoodEnd α L ℓ} ℓ := by
   classical
   have h : ∃ ℓ, IsGoodEnd α L ℓ := ⟨_, isGoodEnd_of_card_symmDiff_le hα hc⟩
-  exact ⟨Nat.find h, Nat.find_min' h (isGoodEnd_of_card_symmDiff_le hα hc), Nat.find_spec h,
-    fun _ ↦ Nat.find_min h⟩
+  exact ⟨Nat.find h, Nat.find_min' h (isGoodEnd_of_card_symmDiff_le hα hc), Nat.isLeast_find h⟩
 
 /-- A discrete intermediate value property: the sizes of the parts of `β` in the initial segments
 take every value between two of them. -/
@@ -368,14 +329,14 @@ lemma exists_card_inter_range_eq {t m : ℕ} (h₀ : #(β ∩ range L) ≤ t)
 the two sizes. -/
 lemma exists_left_end_coords {N : ℕ} (hα : #(α ∆ Ico L (L + M)) ≤ c) (hβ : #(β ∆ Ico L (L + N)) ≤ c)
     (hM : 31 * c ≤ M) (hN : 33 * c ≤ N) (hαβ : #(β ∩ range L) ≤ #(α ∩ range L)) :
-    ∃ ℓA ≤ 31 * c, ∃ ℓB ≤ 33 * c, IsGoodEnd α L ℓA ∧ (∀ ℓ' < ℓA, ¬IsGoodEnd α L ℓ') ∧
+    ∃ ℓA ≤ 31 * c, ∃ ℓB ≤ 33 * c, IsLeast {ℓ | IsGoodEnd α L ℓ} ℓA ∧
       #(α ∩ range (L + ℓA)) = #(β ∩ range (L + ℓB)) := by
-  obtain ⟨ℓA, hℓA, hgood, hmin⟩ := exists_isGoodEnd_min hα hM
+  obtain ⟨ℓA, hℓA, hleast⟩ := exists_isLeast_isGoodEnd hα hM
   obtain ⟨ℓB, hℓB, heq⟩ := exists_card_inter_range_eq (β := β) (L := L)
     (t := #(α ∩ range (L + ℓA))) (m := 33 * c) (by grind [card_inter_range_add α L ℓA])
     (by grind [card_inter_range_add α L ℓA, card_inter_range_add β L (33 * c),
       card_inter_range_le hα, le_card_inter_Ico_add hβ hN, card_inter_Ico_le α L (L + ℓA)])
-  exact ⟨ℓA, hℓA, ℓB, hℓB, hgood, hmin, heq.symm⟩
+  exact ⟨ℓA, hℓA, ℓB, hℓB, hleast, heq.symm⟩
 
 /-- A sparse set beside an interval has at least as many points outside a final segment as it has in
 all. -/
@@ -390,7 +351,7 @@ lemma card_inter_range_le_card_symmDiff_Ico
 /-- The part in `range L` of the symmetric difference of the part of `α` in `range (L + ℓ)` with an
 interval reaching beyond `L` has at least `#(α ∩ range L)` points, by sparseness. -/
 lemma card_inter_range_le_card_symmDiff_inter_range
-    (hsparse : ∀ k, 0 < k → k ≤ L → 2 * #(α ∩ Ico (L - k) L) < k) {i j : ℕ} (hj : L < j) :
+    (hsparse : ∀ k, 0 < k → k ≤ L → 2 * #(α ∩ Ico (L - k) L) < k) (ℓ i : ℕ) {j : ℕ} (hj : L < j) :
     #(α ∩ range L) ≤ #(((α ∩ range (L + ℓ)) ∆ Ico i j) ∩ range L) := by
   grw [card_inter_range_le_card_symmDiff_Ico hsparse (Nat.sub_le L (min i L))]
   apply card_le_card
@@ -423,9 +384,9 @@ final segments of `range L` and `ℓ` the shortest admissible inner end. Then th
 `range (L + ℓ)` has at most `64` times as many points as its symmetric difference with any interval.
 -/
 lemma card_le_mul_card_symmDiff_Ico (hsparse : ∀ k, 0 < k → k ≤ L → 2 * #(α ∩ Ico (L - k) L) < k)
-    (hgood : IsGoodEnd α L ℓ) (hmin : ∀ ℓ' < ℓ, ¬IsGoodEnd α L ℓ') (i j : ℕ) :
+    (hℓ : IsLeast {ℓ | IsGoodEnd α L ℓ} ℓ) (i j : ℕ) :
     #(α ∩ range (L + ℓ)) ≤ 64 * #((α ∩ range (L + ℓ)) ∆ Ico i j) := by
-  obtain ⟨h30, -⟩ := hgood
+  obtain ⟨⟨h30, -⟩, hmin⟩ := hℓ
   rw [card_inter_range_add]
   rcases le_or_gt j L with hj | hj
   · have hsub : α ∩ Ico L (L + ℓ) ⊆ (α ∩ range (L + ℓ)) ∆ Ico i j := by
@@ -433,29 +394,29 @@ lemma card_le_mul_card_symmDiff_Ico (hsparse : ∀ k, 0 < k → k ≤ L → 2 * 
       simp only [mem_inter, mem_symmDiff, mem_range, mem_Ico]
       grind
     grind [card_le_card hsub]
-  have hleft := card_inter_range_le_card_symmDiff_inter_range (ℓ := ℓ) (i := i) hsparse hj
+  have hleft := card_inter_range_le_card_symmDiff_inter_range hsparse ℓ i hj
   rcases h30.eq_or_lt with h | h
   · linarith [card_le_card (inter_subset_left (s₁ := (α ∩ range (L + ℓ)) ∆ Ico i j)
       (s₂ := range L))]
   obtain ⟨ℓ', rfl⟩ : ∃ ℓ', ℓ = ℓ' + 1 := ⟨ℓ - 1, by grind [card_inter_Ico_le α L (L + ℓ)]⟩
-  linarith [card_inter_Ico_le_mul_card_symmDiff_inter_Ico (hmin ℓ' (by grind)) h i j,
+  linarith [card_inter_Ico_le_mul_card_symmDiff_inter_Ico (fun h ↦ by grind [hmin h]) h i j,
     card_inter_add_card_inter_le ((α ∩ range (L + (ℓ' + 1))) ∆ Ico i j)
       (disjoint_range_Ico L (L + ℓ'))]
 
 /-- The part of `α` in `range L` is nonempty when the part in `range (L + ℓ)` is, for the shortest
 admissible inner end `ℓ`. -/
-lemma pos_card_inter_range_of_isGoodEnd (hmin : ∀ ℓ' < ℓ, ¬IsGoodEnd α L ℓ')
+lemma card_inter_range_pos_of_isLeast (hℓ : IsLeast {ℓ | IsGoodEnd α L ℓ} ℓ)
     (h : 0 < #(α ∩ range (L + ℓ))) : 0 < #(α ∩ range L) := by
+  obtain ⟨-, hmin⟩ := hℓ
   by_contra! ha
-  obtain rfl : ℓ = 0 := by
-    by_contra hℓ
-    exact hmin 0 (by grind) (isGoodEnd_zero (by grind))
+  obtain rfl : ℓ = 0 := Nat.le_zero.1 (hmin (isGoodEnd_zero (by grind)))
   grind
 
 /-- The part of `α` in `range (L + ℓ)` differs from an interval `Ico i j` inside `Ico L (L + ℓ)` at
 most in the part of `α` in `range L` and in the difference between `Ico i j` and the part of `α` in
 `Ico L (L + ℓ)`. -/
-private lemma card_inter_range_symmDiff_Ico_le {i j : ℕ} (hi : L ≤ i) (hj : j ≤ L + ℓ) :
+private lemma card_inter_range_symmDiff_Ico_le (α : Finset ℕ) {i j : ℕ} (hi : L ≤ i)
+    (hj : j ≤ L + ℓ) :
     #(Ico i j ∆ (α ∩ range (L + ℓ))) ≤ #(α ∩ range L) + #(Ico i j ∆ (α ∩ Ico L (L + ℓ))) := by
   grw [← card_union_le]
   apply card_le_card
@@ -466,17 +427,16 @@ private lemma card_inter_range_symmDiff_Ico_le {i j : ℕ} (hi : L ≤ i) (hj : 
 /-- A set `π` close to the part of `α` in `range (L + ℓ)`, for the shortest admissible inner end
 `ℓ`, is close to an interval `Ico i j` with `20 ≤ j - i`, in the sense of the near-interval lemma
 `exists_eq_arithProg_one_of_card_inter_arithProg_one`. -/
-lemma exists_Ico_near_of_isGoodEnd {π : Finset ℕ} (hgood : IsGoodEnd α L ℓ)
-    (hmin : ∀ ℓ' < ℓ, ¬IsGoodEnd α L ℓ')
+lemma exists_Ico_near_of_isLeast {π : Finset ℕ} (hℓ : IsLeast {ℓ | IsGoodEnd α L ℓ} ℓ)
     (h : 64 * #((α ∩ range (L + ℓ)) ∆ π) < #(α ∩ range (L + ℓ))) :
     ∃ i j, L ≤ i ∧ j ≤ L + ℓ ∧ 20 ≤ j - i ∧ 9 * (j - i) ≤ 10 * #(π ∩ Ico i j) ∧
       10 * #π ≤ 11 * (j - i) := by
-  have ha := pos_card_inter_range_of_isGoodEnd hmin (by grind)
+  have ha := card_inter_range_pos_of_isLeast hℓ (by grind)
   rw [card_inter_range_add] at h
-  obtain ⟨h30, i, j, hi, hj, hE⟩ := hgood
+  obtain ⟨⟨h30, i, j, hi, hj, hE⟩, -⟩ := hℓ
   refine ⟨i, j, hi, hj, ?_, ?_, ?_⟩ <;>
     linarith [Nat.card_Ico i j, card_symmDiff_le_add (Ico i j) (α ∩ range (L + ℓ)) π,
-      card_inter_range_symmDiff_Ico_le (α := α) hi hj,
+      card_inter_range_symmDiff_Ico_le α hi hj,
       card_le_card_inter_add_card_symmDiff (Ico i j) π,
       card_le_card_add_card_symmDiff (Ico i j) (α ∩ Ico L (L + ℓ)),
       card_le_card_add_card_symmDiff (Ico i j) π]
@@ -489,14 +449,14 @@ variable {p : ℕ}
 
 /-- A progression close to the part of `A` in `arithProg s 1 (L + ℓ)`, for the shortest admissible
 inner end `ℓ`, is an interval short enough to meet `arithProg s 1 (L + ℓ)` in an interval. -/
-lemma exists_eq_arithProg_one_of_isGoodEnd (hp : p.Prime) {A : Finset (ZMod p)} {s : ZMod p}
-    {L ℓ : ℕ} (hgood : IsGoodEnd (coords s A) L ℓ) (hmin : ∀ ℓ' < ℓ, ¬IsGoodEnd (coords s A) L ℓ')
-    (hLp : 8 * (L + ℓ) ≤ p) {a d : ZMod p} {n : ℕ}
+lemma exists_eq_arithProg_one_of_isLeast (hp : p.Prime) {A : Finset (ZMod p)} {s : ZMod p}
+    {L ℓ : ℕ} (hℓ : IsLeast {ℓ | IsGoodEnd (coords s A) L ℓ} ℓ) (hLp : 8 * (L + ℓ) ≤ p)
+    {a d : ZMod p} {n : ℕ}
     (h : 64 * #((coords s A ∩ range (L + ℓ)) ∆ coords s (arithProg a d n)) <
       #(coords s A ∩ range (L + ℓ))) :
     ∃ a' n', n' + (L + ℓ) ≤ p ∧ arithProg a d n = arithProg a' 1 n' := by
   have : NeZero p := ⟨hp.ne_zero⟩
-  obtain ⟨i, j, hi, hj, h20, hPQ, hP⟩ := exists_Ico_near_of_isGoodEnd hgood hmin h
+  obtain ⟨i, j, hi, hj, h20, hPQ, hP⟩ := exists_Ico_near_of_isLeast hℓ h
   rw [← Nat.add_sub_cancel' (by grind : i ≤ j), ← coords_arithProg s (by grind),
     ← coords_inter, card_coords, Nat.add_sub_cancel' (by grind : i ≤ j)] at hPQ
   rw [card_coords] at hP
@@ -510,17 +470,17 @@ lemma exists_eq_arithProg_one_of_isGoodEnd (hp : p.Prime) {A : Finset (ZMod p)} 
 sparse in the final segments of `arithProg s 1 L` and `ℓ` is the shortest admissible inner end. -/
 lemma isFarFromArithProg_inter_arithProg (hp : p.Prime) {A : Finset (ZMod p)} {s : ZMod p} {L ℓ : ℕ}
     (hsparse : ∀ k, 0 < k → k ≤ L → 2 * #(coords s A ∩ Ico (L - k) L) < k)
-    (hgood : IsGoodEnd (coords s A) L ℓ) (hmin : ∀ ℓ' < ℓ, ¬IsGoodEnd (coords s A) L ℓ')
-    (hLp : 8 * (L + ℓ) ≤ p) : IsFarFromArithProg 64 (A ∩ arithProg s 1 (L + ℓ)) := by
+    (hℓ : IsLeast {ℓ | IsGoodEnd (coords s A) L ℓ} ℓ) (hLp : 8 * (L + ℓ) ≤ p) :
+    IsFarFromArithProg 64 (A ∩ arithProg s 1 (L + ℓ)) := by
   have : NeZero p := ⟨hp.ne_zero⟩
   intro a d n
   rw [← card_coords s, ← card_coords s (_ ∆ _), coords_symmDiff, coords_inter,
     coords_arithProg_self s (by grind)]
   by_contra! h
-  obtain ⟨a', n', hn', hP⟩ := exists_eq_arithProg_one_of_isGoodEnd hp hgood hmin hLp h
+  obtain ⟨a', n', hn', hP⟩ := exists_eq_arithProg_one_of_isLeast hp hℓ hLp h
   obtain ⟨i, j, hij⟩ := exists_coords_arithProg_inter_range s a' hn'
   refine h.not_ge ?_
-  grw [card_le_mul_card_symmDiff_Ico hsparse hgood hmin i j, hP, ← hij]
+  grw [card_le_mul_card_symmDiff_Ico hsparse hℓ i j, hP, ← hij]
   gcongr
   intro x
   simp only [mem_symmDiff, mem_inter, mem_range]
@@ -556,13 +516,13 @@ lemma IsMaxNearInterval.two_mul_card_inter_lt (h : IsMaxNearInterval c A u M) {k
   obtain ⟨w, rfl⟩ : ∃ w, u = w + k := ⟨u - k, by simp⟩
   rw [add_sub_cancel_right]
   grind [hmax w (k + M) hkM, arithProg_one_add_eq_union w k M,
-    card_symmDiff_union_add (A := A) (disjoint_arithProg_one w hkM),
+    card_symmDiff_union_add A (disjoint_arithProg_one w hkM),
     card_arithProg_one w (by grind : k ≤ p)]
 
 /-- Replacing a longest interval within `c` of `A` by its middle part, without `ℓ₁` points on the
 left and `ℓ₃` points on the right, keeps it within `c + (ℓ₁ + ℓ₃)` of `A`. -/
-lemma IsMaxNearInterval.card_symmDiff_middle_le (h : IsMaxNearInterval c A u M) {L ℓ₁ ℓ₃ : ℕ}
-    (hℓ : ℓ₁ + ℓ₃ ≤ M) :
+lemma IsMaxNearInterval.card_symmDiff_middle_le (h : IsMaxNearInterval c A u M) (L : ℕ)
+    {ℓ₁ ℓ₃ : ℕ} (hℓ : ℓ₁ + ℓ₃ ≤ M) :
     #(A ∆ arithProg (u - L + ((L + ℓ₁ : ℕ) : ZMod p)) 1 (M - (ℓ₁ + ℓ₃))) ≤ c + (ℓ₁ + ℓ₃) := by
   obtain ⟨hMp, hAM, -⟩ := h
   rw [Nat.cast_add, add_comm (L : ZMod p), sub_add_add_cancel]
@@ -627,10 +587,10 @@ lemma exists_left_end_of_card_le (hp : p.Prime) {A B : Finset (ZMod p)} {s r : Z
       IsFarFromArithProg 64 (A ∩ arithProg s 1 (L + ℓA)) := by
   have : NeZero p := ⟨hp.ne_zero⟩
   rw [card_inter_arithProg_eq s A (by grind), card_inter_arithProg_eq r B (by grind)] at hAB
-  obtain ⟨ℓA, hℓA, ℓB, hℓB, hgood, hmin, heq⟩ := exists_left_end_coords
+  obtain ⟨ℓA, hℓA, ℓB, hℓB, hleast, heq⟩ := exists_left_end_coords
     (hA.card_coords_symmDiff_le hLM) (hB.card_coords_symmDiff_le hLN) (by grind) hN hAB
   refine ⟨ℓA, by grind, ℓB, hℓB, ?_, isFarFromArithProg_inter_arithProg hp
-    (fun k hk hkL ↦ hA.two_mul_card_coords_inter_lt hLM hk hkL) hgood hmin (by grind)⟩
+    (fun k hk hkL ↦ hA.two_mul_card_coords_inter_lt hLM hk hkL) hleast (by grind)⟩
   rwa [card_inter_arithProg_eq s A (by grind), card_inter_arithProg_eq r B (by grind)]
 
 /-- The one-sided construction: the left ends of the longest intervals within `c` of `A` and `B` can
@@ -651,11 +611,13 @@ lemma exists_left_end (hp : p.Prime) {A B : Finset (ZMod p)} {s r : ZMod p} {c L
       exists_left_end_of_card_le hp hB hA hN hM hLN hLM hLp h
     exact ⟨ℓA, hℓA, ℓB, hℓB, heq.symm, Or.inr hfar⟩
 
-/-- The right ends: the left ends of the reflections, read back through the reflection. -/
+/-- The right ends, beyond left ends of lengths `L + ℓA'` and `L + ℓB'`: the left ends of the
+reflections, read back through the reflection. -/
 lemma exists_right_end (hp : p.Prime) {A B : Finset (ZMod p)} {u v : ZMod p} {c L M N : ℕ}
     (hA : IsMaxNearInterval c A u M) (hB : IsMaxNearInterval c B v N) (hM : 66 * c ≤ M)
-    (hN : 66 * c ≤ N) (hLM : L + M ≤ p) (hLN : L + N ≤ p) (hLp : 8 * (L + 33 * c) ≤ p) :
-    ∃ ℓA ≤ 33 * c, ∃ ℓB ≤ 33 * c, ∀ ℓA' ≤ 33 * c, ∀ ℓB' ≤ 33 * c,
+    (hN : 66 * c ≤ N) (hLM : L + M ≤ p) (hLN : L + N ≤ p) (hLp : 8 * (L + 33 * c) ≤ p)
+    {ℓA' ℓB' : ℕ} (hℓA' : ℓA' ≤ 33 * c) (hℓB' : ℓB' ≤ 33 * c) :
+    ∃ ℓA ≤ 33 * c, ∃ ℓB ≤ 33 * c,
       #(A ∩ arithProg (u - L + ((L + ℓA' + (M - (ℓA' + ℓA)) : ℕ) : ZMod p)) 1 (L + ℓA)) =
         #(B ∩ arithProg (v - L + ((L + ℓB' + (N - (ℓB' + ℓB)) : ℕ) : ZMod p)) 1 (L + ℓB)) ∧
       (IsFarFromArithProg 64
@@ -666,9 +628,8 @@ lemma exists_right_end (hp : p.Prime) {A B : Finset (ZMod p)} {u v : ZMod p} {c 
     (s := -(u + M) + 1 - L) (r := -(v + N) + 1 - L) (by simpa using hA.image_neg)
     (by simpa using hB.image_neg) (by grind) (by grind) hLM hLN hLp
   refine ⟨ℓA, hℓA, ℓB, hℓB, ?_⟩
-  intro ℓA' hℓA' ℓB' hℓB'
-  rw [sub_natCast_add_natCast_eq_neg u (by grind : ℓA' + ℓA ≤ M),
-    sub_natCast_add_natCast_eq_neg v (by grind : ℓB' + ℓB ≤ N)]
+  rw [sub_natCast_add_natCast_eq_neg u L (by grind : ℓA' + ℓA ≤ M),
+    sub_natCast_add_natCast_eq_neg v L (by grind : ℓB' + ℓB ≤ N)]
   refine ⟨?_, hfar.imp ?_ ?_⟩
   · rw [← card_image_of_injective _ neg_injective, image_neg_inter_arithProg_one, heq,
       ← image_neg_inter_arithProg_one, card_image_of_injective _ neg_injective]
@@ -682,10 +643,8 @@ end LeftEnd
 /-- If `c ≤ γ * min a b` with `67 * γ ≤ 1`, then `67 * c ≤ min a b`. -/
 lemma sixty_seven_mul_le_min {γ : ℝ} (hγ : 67 * γ ≤ 1) {a b c : ℕ} (hc : c ≤ γ * min (a : ℝ) b) :
     67 * c ≤ min a b := by
-  rw [← Nat.cast_le (α := ℝ)]
-  push_cast
-  nlinarith [mul_nonneg (by linarith : (0 : ℝ) ≤ 1 - 67 * γ)
-    (by positivity : (0 : ℝ) ≤ min (a : ℝ) b)]
+  rify
+  nlinarith [mul_nonneg (by linarith : 0 ≤ 1 - 67 * γ) (by positivity : 0 ≤ min (a : ℝ) b)]
 
 /-- The numerical facts behind Lemma 9: with `c ≤ γ * min a b`, the longest intervals have room for
 the inner ends, and the enlarged intervals fit in `ZMod p`. -/
@@ -693,19 +652,20 @@ lemma sixty_six_mul_le_and_floor_add_le {p : ℕ} {β γ : ℝ} (hβ : β ≤ 1 
     (hγβ : 2 ^ 20 * γ ≤ β) {a b c M N : ℕ} (hab : a + b ≤ (1 - β) * p) (hc : c ≤ γ * min (a : ℝ) b)
     (hM : M ≤ a + c) (hN : N ≤ b + c) (haM : a ≤ M + c) (hbN : b ≤ N + c) :
     66 * c ≤ M ∧ 66 * c ≤ N ∧ 4 * ⌊β * p / 8⌋₊ + M + N ≤ p ∧ 8 * (⌊β * p / 8⌋₊ + 33 * c) ≤ p := by
-  have hp : (0 : ℝ) ≤ p := Nat.cast_nonneg p
   have hβ0 : 0 ≤ β := by linarith
-  have hγp : γ * min (a : ℝ) b ≤ γ * p := by
+  have hcp : c ≤ γ * p := by
+    grw [hc, min_le_left]
     gcongr
-    linarith [min_le_left (a : ℝ) b, mul_nonneg hβ0 hp, Nat.cast_nonneg (α := ℝ) b]
-  have hL : (⌊β * p / 8⌋₊ : ℝ) ≤ β * p / 8 := Nat.floor_le (by positivity)
-  refine ⟨by grind [sixty_seven_mul_le_min (by linarith) hc],
-    by grind [sixty_seven_mul_le_min (by linarith) hc], ?_, ?_⟩ <;>
-    rw [← Nat.cast_le (α := ℝ)] <;> push_cast
-  · linarith [(by exact_mod_cast hM : (M : ℝ) ≤ a + c), (by exact_mod_cast hN : (N : ℝ) ≤ b + c),
-      mul_le_mul_of_nonneg_right hγβ hp, mul_nonneg hγ.le hp]
-  · linarith [mul_le_mul_of_nonneg_right hβ hp, mul_le_mul_of_nonneg_right hγβ hp,
-      mul_nonneg hγ.le hp]
+    rify
+    linarith [mul_nonneg hβ0 (Nat.cast_nonneg (α := ℝ) p), Nat.cast_nonneg (α := ℝ) b]
+  have hL : ⌊β * p / 8⌋₊ ≤ β * p / 8 := Nat.floor_le (by positivity)
+  have h67 := sixty_seven_mul_le_min (by linarith) hc
+  refine ⟨by grind, by grind, ?_, ?_⟩ <;> rify at hM hN ⊢
+  · linarith [mul_le_mul_of_nonneg_right hγβ (Nat.cast_nonneg (α := ℝ) p),
+      mul_nonneg hγ.le (Nat.cast_nonneg (α := ℝ) p)]
+  · linarith [mul_le_mul_of_nonneg_right hβ (Nat.cast_nonneg (α := ℝ) p),
+      mul_le_mul_of_nonneg_right hγβ (Nat.cast_nonneg (α := ℝ) p),
+      mul_nonneg hγ.le (Nat.cast_nonneg (α := ℝ) p)]
 
 /-- **Lemma 9** of Bollobás, Leader and Tiba, with the constants of this formalization. Here
 `I₁ = arithProg s 1 a₁`, `I₂ = arithProg (s + a₁) 1 a₂`, `I₃ = arithProg (s + (a₁ + a₂)) 1 a₃`, and
@@ -742,20 +702,19 @@ lemma exists_interval_ends {p : ℕ} (hp : p.Prime) {β γ : ℝ} (hβ : β ≤ 
   obtain ⟨ℓ₁, hℓ₁, ℓ₁', hℓ₁', heq₁, hfar₁⟩ := exists_left_end hp (s := u - L) (r := v - L)
     (by rwa [sub_add_cancel]) (by rwa [sub_add_cancel]) (by grind) (by grind) (by grind)
     (by grind) hLp
-  obtain ⟨ℓ₃, hℓ₃, ℓ₃', hℓ₃', hright⟩ :=
-    exists_right_end hp hu hv hcM hcN (by grind) (by grind) hLp
-  obtain ⟨heq₃, hfar₃⟩ := hright ℓ₁ (by grind) ℓ₁' (by grind)
+  obtain ⟨ℓ₃, hℓ₃, ℓ₃', hℓ₃', heq₃, hfar₃⟩ :=
+    exists_right_end hp hu hv hcM hcN (by grind) (by grind) hLp hℓ₁ hℓ₁'
   refine ⟨u - L, v - L, L + ℓ₁, M - (ℓ₁ + ℓ₃), L + ℓ₃, L + ℓ₁', N - (ℓ₁' + ℓ₃'), L + ℓ₃',
     Nat.le_add_right _ _, Nat.le_add_right _ _, Nat.le_add_right _ _, Nat.le_add_right _ _,
     by grind, ?_, heq₁, heq₃, ?_, ?_, Or.inr hfar₁, Or.inr hfar₃⟩
-  · linarith [(by exact_mod_cast (Nat.sub_le _ _).trans hu.le_card_add :
-      ((M - (ℓ₁ + ℓ₃) : ℕ) : ℝ) ≤ #A + c),
-      (by exact_mod_cast (Nat.sub_le _ _).trans hv.le_card_add :
-        ((N - (ℓ₁' + ℓ₃') : ℕ) : ℝ) ≤ #B + c)]
-  · grw [hu.card_symmDiff_middle_le (by grind), (by grind : c + (ℓ₁ + ℓ₃) ≤ 67 * c)]
+  · grw [← Nat.cast_add, (by grind [hu.le_card_add, hv.le_card_add] :
+      M - (ℓ₁ + ℓ₃) + (N - (ℓ₁' + ℓ₃')) ≤ #A + #B + 2 * c)]
     push_cast
     linarith
-  · grw [hv.card_symmDiff_middle_le (by grind), (by grind : c + (ℓ₁' + ℓ₃') ≤ 67 * c)]
+  · grw [hu.card_symmDiff_middle_le L (by grind), (by grind : c + (ℓ₁ + ℓ₃) ≤ 67 * c)]
+    push_cast
+    linarith
+  · grw [hv.card_symmDiff_middle_le L (by grind), (by grind : c + (ℓ₁' + ℓ₃') ≤ 67 * c)]
     push_cast
     linarith
 

@@ -7,6 +7,7 @@ module
 
 public import Mathlib.Algebra.BigOperators.Expect
 public import Mathlib.Basic.Real.Basic
+public import Mathlib.Combinatorics.Additive.Convolution
 import LargeSumsetsFromSmallSubsets.Sampling
 import Mathlib.Algebra.BigOperators.Field
 import Mathlib.Data.Rat.Cast.Order
@@ -21,106 +22,62 @@ import Mathlib.Tactic.Ring.RingNF
 /-!
 # Sampling with replacement from two sets
 
-Let `X` and `Y` be finite subsets of an abelian group, sample `k₁` points of `X` and `k₂` points of
-`Y` independently and uniformly with replacement, and let `X'` and `Y'` be the sets of sampled
-values. This file computes the expectation of `#(X' + Y')` as the sum over `s ∈ X + Y` of the
-probability `hitProb` that `s` is seen, and bounds that probability from below in terms of the
-number `reprCount X Y s` of representations `s = u + v` with `u ∈ X` and `v ∈ Y`.
+Let `X` and `Y` be finite subsets of an abelian group, choose `k₁` points of `X` and `k₂` points of
+`Y` independently and uniformly at random, with repetitions allowed, and let `X'` and `Y'` be the
+sets of chosen points. This file writes the expectation of `#(X' + Y')` as the sum over `s ∈ X + Y`
+of the probability `hitProb X Y k₁ k₂ s` that `s ∈ X' + Y'`, and bounds that probability from
+below in terms of the number `X.addConvolution Y s` of representations `s = u + v` with `u ∈ X` and
+`v ∈ Y`.
 
 The bound is a second-moment estimate. The representations of a fixed `s` form a matching, so the
-events "the two entries of a representation are both sampled" are pairwise nonpositively correlated,
-whence the second moment of their number `Z` is at most `𝔼 Z + (𝔼 Z) ^ 2`. The pointwise inequality
+events "the two entries of a representation are both chosen" are pairwise nonpositively correlated,
+and the second moment of their number `Z` is at most `𝔼 Z + (𝔼 Z) ^ 2`. The pointwise inequality
 `1 ≥ 2 * c * Z - (c * Z) ^ 2`, valid when `Z` is positive, then bounds the probability that `Z` is
 positive from below by `𝔼 Z / (1 + 𝔼 Z)`.
 
 ## Main definitions
 
-* `LargeSumsetsFromSubsets.bltSample A f`: the set of values of a sample `f : Fin k → A`.
-* `LargeSumsetsFromSubsets.Sampling.reprCount X Y s`: the number of representations `s = u + v`
-  with `u ∈ X` and `v ∈ Y`.
-* `LargeSumsetsFromSubsets.Sampling.hitProb X Y k₁ k₂ s`: the probability that `s` is seen.
-* `LargeSumsetsFromSubsets.Sampling.expectSumset X Y k₁ k₂`: the expectation of `#(X' + Y')`.
+* `LargeSumsetsFromSubsets.MediumSizedSubsets.hits X k a`: the samples `f : Fin k → X` that take
+  the value `a`.
+* `LargeSumsetsFromSubsets.MediumSizedSubsets.hitCount X k`: the number `#X ^ k - (#X - 1) ^ k` of
+  samples that take a given value of `X`.
+* `LargeSumsetsFromSubsets.MediumSizedSubsets.hitProb X Y k₁ k₂ s`: the probability that
+  `s ∈ X' + Y'`.
+* `LargeSumsetsFromSubsets.MediumSizedSubsets.expectCardAdd X Y k₁ k₂`: the expectation of
+  `#(X' + Y')`.
 
 ## Main statements
 
-* `LargeSumsetsFromSubsets.Sampling.expectSumset_eq_sum_hitProb`: the expectation of `#(X' + Y')`
-  is the sum over `s ∈ X + Y` of `hitProb X Y k₁ k₂ s`.
-* `LargeSumsetsFromSubsets.Sampling.div_le_hitProb`: the second-moment lower bound for `hitProb`.
+* `LargeSumsetsFromSubsets.MediumSizedSubsets.expectCardAdd_eq_sum_hitProb`: the expectation of
+  `#(X' + Y')` is the sum over `s ∈ X + Y` of `hitProb X Y k₁ k₂ s`.
+* `LargeSumsetsFromSubsets.MediumSizedSubsets.div_le_hitProb`: if `3 * k₁ ≤ 4 * #X` and
+  `3 * k₂ ≤ 4 * #Y`, then `hitProb X Y k₁ k₂ s ≥ r * k₁ * k₂ / (9 * #X * #Y + r * k₁ * k₂)`, where
+  `r = X.addConvolution Y s`.
 -/
 
 @[expose] public section
 
-namespace LargeSumsetsFromSubsets
+namespace LargeSumsetsFromSubsets.MediumSizedSubsets
 
 open Finset
 
 open scoped BigOperators Pointwise
 
-variable {G : Type*} [DecidableEq G]
-
-/-- The finset underlying a sample with replacement from `A`. -/
-def bltSample (A : Finset G) {k : ℕ} (f : Fin k → ↥A) : Finset G := univ.image fun i ↦ f i
-
-/-- The sample contains exactly the values of the sampling function. -/
-lemma mem_bltSample {A : Finset G} {k : ℕ} {f : Fin k → ↥A} {a : G} :
-    a ∈ bltSample A f ↔ ∃ i, (f i : G) = a := by
-  simp [bltSample, eq_comm]
-
-/-- A sample from `A` is a subset of `A`. -/
-lemma bltSample_subset (A : Finset G) {k : ℕ} (f : Fin k → ↥A) : bltSample A f ⊆ A := by
-  intro a ha
-  obtain ⟨i, rfl⟩ := mem_bltSample.1 ha
-  exact (f i).prop
-
-/-- A sample of `k` points has at most `k` elements. -/
-lemma card_bltSample_le (A : Finset G) {k : ℕ} (f : Fin k → ↥A) : #(bltSample A f) ≤ k :=
-  card_image_le.trans (by simp)
-
-namespace Sampling
+variable {G : Type*}
 
 /-! ### Counting samples -/
 
-/-- The samples from `X` that contain the element `a`. -/
-def hits (X : Finset G) (k : ℕ) (a : G) : Finset (Fin k → ↥X) :=
-  {f | a ∈ bltSample X f}
+/-- The number of samples `f : Fin k → X` that take a given value of `X`. -/
+def hitCount (X : Finset G) (k : ℕ) : ℕ := #X ^ k - (#X - 1) ^ k
 
-/-- The samples from `X` avoiding the set `Z`. -/
-private def avoiders (X Z : Finset G) (k : ℕ) : Finset (Fin k → ↥X) :=
-  {f | ∀ i, (f i : G) ∉ Z}
+/-- The samples that take a given value of `X` and those that miss it make up all samples. -/
+lemma hitCount_add (X : Finset G) (k : ℕ) : hitCount X k + (#X - 1) ^ k = #X ^ k :=
+  Nat.sub_add_cancel (Nat.pow_le_pow_left (Nat.sub_le _ _) k)
 
-/-- The samples from `X` avoiding `Z` are the samples from `X \ Z`. -/
-private lemma card_avoiders (X Z : Finset G) (k : ℕ) : #(avoiders X Z k) = #(X \ Z) ^ k :=
-  LargeSumsetsFromSmallSubsets.card_filter_forall_not_mem X Z k
-
-/-- The samples missing `a` are those avoiding `{a}`. -/
-private lemma univ_sdiff_hits (X : Finset G) (k : ℕ) (a : G) :
-    univ \ hits X k a = avoiders X {a} k := by
-  ext f
-  simp [hits, avoiders, mem_bltSample]
-
-/-- The samples missing `a` or `b` are those avoiding `{a}` or avoiding `{b}`. -/
-private lemma univ_sdiff_hits_inter (X : Finset G) (k : ℕ) (a b : G) :
-    univ \ (hits X k a ∩ hits X k b) = avoiders X {a} k ∪ avoiders X {b} k := by
-  ext f
-  simp [hits, avoiders, mem_bltSample, imp_iff_not_or]
-
-/-- The samples avoiding `{a}` and `{b}` are those avoiding `{a, b}`. -/
-private lemma avoiders_inter (X : Finset G) (k : ℕ) (a b : G) :
-    avoiders X {a} k ∩ avoiders X {b} k = avoiders X {a, b} k := by
-  ext f
-  simp [avoiders, forall_and]
-
-/-- The samples containing `a` and the samples from `X \ {a}` together make up all samples. -/
-lemma card_hits_add {X : Finset G} {a : G} (ha : a ∈ X) (k : ℕ) :
-    #(hits X k a) + (#X - 1) ^ k = #X ^ k := by
-  rw [(by simp : #X ^ k = #(univ : Finset (Fin k → ↥X))),
-    ← card_sdiff_add_card_eq_card (subset_univ (hits X k a)), univ_sdiff_hits, card_avoiders,
-    sdiff_singleton_eq_erase, card_erase_of_mem ha, add_comm]
-
-/-- The number of samples containing a fixed element `a ∈ X`. -/
-lemma card_hits {X : Finset G} {a : G} (ha : a ∈ X) (k : ℕ) :
-    #(hits X k a) = #X ^ k - (#X - 1) ^ k :=
-  Nat.eq_sub_of_add_eq (card_hits_add ha k)
+/-- A sample of `k ≥ 1` points of a nonempty set takes each of its values with positive
+probability. -/
+lemma hitCount_pos {X : Finset G} (hX : X.Nonempty) {k : ℕ} (hk : 1 ≤ k) : 0 < hitCount X k :=
+  Nat.sub_pos_of_lt (Nat.pow_lt_pow_left (by grind [hX.card_pos]) (by grind))
 
 /-- The elementary inequality `(x - 2) * x ≤ (x - 1) ^ 2`, raised to the power `k`. -/
 private lemma sub_two_pow_mul_le {x : ℕ} (hx : 2 ≤ x) (k : ℕ) :
@@ -130,38 +87,6 @@ private lemma sub_two_pow_mul_le {x : ℕ} (hx : 2 ≤ x) (k : ℕ) :
   obtain ⟨t, rfl⟩ : ∃ t, x = t + 2 := ⟨x - 2, by grind⟩
   grind
 
-/-- Inclusion–exclusion for the samples missing `a` or missing `b`. -/
-private lemma card_hits_inter_add {X : Finset G} {a b : G} (ha : a ∈ X) (hb : b ∈ X) (hab : a ≠ b)
-    (k : ℕ) : #(hits X k a ∩ hits X k b) + 2 * (#X - 1) ^ k = #X ^ k + (#X - 2) ^ k := by
-  have hunion := card_union_add_card_inter (avoiders X {a} k) (avoiders X {b} k)
-  rw [← univ_sdiff_hits_inter, avoiders_inter, card_avoiders, card_avoiders, card_avoiders,
-    sdiff_singleton_eq_erase, sdiff_singleton_eq_erase, card_erase_of_mem ha,
-    card_erase_of_mem hb,
-    card_sdiff_of_subset (by simp [insert_subset_iff, ha, hb] : ({a, b} : Finset G) ⊆ X),
-    card_pair hab] at hunion
-  have hsplit := card_sdiff_add_card_eq_card (subset_univ (hits X k a ∩ hits X k b))
-  simp only [card_univ, Fintype.card_fun, Fintype.card_coe, Fintype.card_fin] at hsplit
-  grind
-
-/-- Two distinct elements are nonpositively correlated: the samples meeting both are fewer than the
-product of the two frequencies. -/
-lemma card_hits_inter_mul_le {X : Finset G} {a b : G} (ha : a ∈ X) (hb : b ∈ X) (hab : a ≠ b)
-    (k : ℕ) : #(hits X k a ∩ hits X k b) * #X ^ k ≤ #(hits X k a) * #(hits X k b) := by
-  have hX : 2 ≤ #X :=
-    card_pair hab ▸ card_le_card (by simp [insert_subset_iff, ha, hb] : ({a, b} : Finset G) ⊆ X)
-  have hb' := card_hits_add hb k
-  nlinarith [sub_two_pow_mul_le hX k, congrArg (· * #X ^ k) (card_hits_inter_add ha hb hab k),
-    congrArg (· * #(hits X k b)) (card_hits_add ha k), congrArg (· * #X ^ k) hb',
-    congrArg (· * (#X - 1) ^ k) hb']
-
-/-- Monotonicity of `t ↦ t / (1 + t)`, in the form used to weaken the second-moment bound. -/
-private lemma div_add_le_div_add {a b c d : ℝ} (ha : 0 ≤ a) (hb : 0 < b) (hc : 0 ≤ c) (hd : 0 < d)
-    (h : a * d ≤ c * b) : a / (b + a) ≤ c / (d + c) := by
-  rw [div_le_div_iff₀ (by positivity) (by positivity)]
-  nlinarith
-
-/-! ### How often a fixed element is sampled -/
-
 /-- A Bernoulli-type inequality: `(1 + j / x) * x ^ (j + 1) ≤ (x + 1) ^ (j + 1)`. -/
 private lemma add_mul_pow_le (x j : ℕ) : (x + j + 1) * x ^ j ≤ (x + 1) ^ (j + 1) := by
   induction j with
@@ -170,7 +95,7 @@ private lemma add_mul_pow_le (x j : ℕ) : (x + j + 1) * x ^ j ≤ (x + 1) ^ (j 
     rw [pow_succ x j, pow_succ (x + 1) (j + 1)]
     nlinarith [Nat.mul_le_mul_right (x + 1) ih, Nat.zero_le ((j + 1) * x ^ j)]
 
-/-- An element is missed by all `k` samples with probability at most `x / (x + k)`. -/
+/-- A given point is missed by all `k` sampled points with probability at most `x / (x + k)`. -/
 private lemma sub_one_pow_mul_le {x : ℕ} (hx : 1 ≤ x) {k : ℕ} (hk : 1 ≤ k) :
     (x - 1) ^ k * (x + k) ≤ x ^ (k + 1) := by
   obtain ⟨j, rfl⟩ : ∃ j, k = j + 1 := ⟨k - 1, by grind⟩
@@ -182,146 +107,139 @@ private lemma sub_one_pow_mul_le {x : ℕ} (hx : 1 ≤ x) {k : ℕ} (hk : 1 ≤ 
     exact Nat.pow_le_pow_left (by nlinarith) _
   linarith [Nat.mul_le_mul_left (t ^ (j + 1)) (add_mul_pow_le (t + 1) j)]
 
-/-- The number `H` of samples containing a fixed point is at least a `k / (3 * x)` fraction of all
-samples, provided `3 * k ≤ 4 * x`. -/
-private lemma mul_pow_le_three_mul_mul {x k H : ℕ} (hx : 1 ≤ x) (hk : 1 ≤ k) (hkx : 3 * k ≤ 4 * x)
-    (hH : H + (x - 1) ^ k = x ^ k) : k * x ^ k ≤ 3 * x * H := by
-  nlinarith [sub_one_pow_mul_le hx hk, pow_succ x k]
+/-- A sample of `k` points of `X`, where `3 * k ≤ 4 * #X`, takes a given value of `X` with
+probability at least `k / (3 * #X)`. -/
+private lemma mul_pow_le_three_mul_hitCount {X : Finset G} (hX : X.Nonempty) {k : ℕ} (hk : 1 ≤ k)
+    (hkX : 3 * k ≤ 4 * #X) : k * #X ^ k ≤ 3 * #X * hitCount X k := by
+  nlinarith [sub_one_pow_mul_le hX.card_pos hk, pow_succ #X k, hitCount_add X k]
 
-/-! ### Representations of a sum -/
+variable [DecidableEq G]
 
-variable [AddCommGroup G]
+/-- The samples `f : Fin k → X` that take the value `a`. -/
+def hits (X : Finset G) (k : ℕ) (a : G) : Finset (Fin k → X) :=
+  {f | a ∈ univ.image fun i ↦ (f i : G)}
 
-/-- The representations `s = u + v` with `u ∈ X` and `v ∈ Y`. -/
-def reprs (X Y : Finset G) (s : G) : Finset (G × G) := {p ∈ X ×ˢ Y | p.1 + p.2 = s}
+/-- The samples that miss a value `a ∈ X` are the samples from `X \ {a}`. -/
+private lemma card_compl_hits {X : Finset G} {a : G} (ha : a ∈ X) (k : ℕ) :
+    #(hits X k a)ᶜ = (#X - 1) ^ k := by
+  rw [← card_erase_of_mem ha, ← sdiff_singleton_eq_erase,
+    ← LargeSumsetsFromSmallSubsets.card_filter_forall_not_mem]
+  congr 1
+  ext f
+  simp [hits]
 
-/-- The number of representations `s = u + v` with `u ∈ X` and `v ∈ Y`. -/
-def reprCount (X Y : Finset G) (s : G) : ℕ := #(reprs X Y s)
+/-- The samples that miss two distinct values `a, b ∈ X` are the samples from `X \ {a, b}`. -/
+private lemma card_compl_hits_union {X : Finset G} {a b : G} (ha : a ∈ X) (hb : b ∈ X)
+    (hab : a ≠ b) (k : ℕ) : #(hits X k a ∪ hits X k b)ᶜ = (#X - 2) ^ k := by
+  rw [← card_pair hab, ← card_sdiff_of_subset (insert_subset ha (singleton_subset_iff.2 hb)),
+    ← LargeSumsetsFromSmallSubsets.card_filter_forall_not_mem]
+  congr 1
+  ext f
+  simp [hits, forall_and]
 
-/-- A representation of `s` is a pair of `X ×ˢ Y` with sum `s`. -/
-lemma mem_reprs {X Y : Finset G} {s : G} {p : G × G} :
-    p ∈ reprs X Y s ↔ p.1 ∈ X ∧ p.2 ∈ Y ∧ p.1 + p.2 = s := by
-  simp [reprs, and_assoc]
+/-- All the values of `X` are taken by the same number of samples. -/
+lemma card_hits {X : Finset G} {a : G} (ha : a ∈ X) (k : ℕ) : #(hits X k a) = hitCount X k := by
+  rw [hitCount, ← card_compl_hits ha, (by simp : #X ^ k = Fintype.card (Fin k → X)),
+    ← card_add_card_compl (hits X k a), Nat.add_sub_cancel]
 
-/-- Two distinct representations of the same sum differ in both coordinates. -/
-lemma fst_ne_and_snd_ne_of_mem_reprs {X Y : Finset G} {s : G} {p q : G × G} (hp : p ∈ reprs X Y s)
-    (hq : q ∈ reprs X Y s) (hpq : p ≠ q) : p.1 ≠ q.1 ∧ p.2 ≠ q.2 := by
-  obtain ⟨a, b⟩ := p
-  obtain ⟨c, d⟩ := q
-  obtain ⟨-, -, rfl⟩ := mem_reprs.1 hp
-  obtain ⟨-, -, hq⟩ := mem_reprs.1 hq
-  constructor <;> rintro rfl <;> simp_all
+/-- Inclusion–exclusion for the samples that take two distinct values `a, b ∈ X`. -/
+private lemma card_hits_inter_add {X : Finset G} {a b : G} (ha : a ∈ X) (hb : b ∈ X) (hab : a ≠ b)
+    (k : ℕ) : #(hits X k a ∩ hits X k b) + #X ^ k = 2 * hitCount X k + (#X - 2) ^ k := by
+  linarith [card_inter_add_card_union (hits X k a) (hits X k b), card_hits ha k, card_hits hb k,
+    card_compl_add_card (hits X k a ∪ hits X k b), card_compl_hits_union ha hb hab k,
+    (by simp : Fintype.card (Fin k → X) = #X ^ k)]
 
-/-- The representations of `s` inject into `X`, hence there are at most `#X` of them. -/
-lemma reprCount_le_left (X Y : Finset G) (s : G) : reprCount X Y s ≤ #X := by
-  apply card_le_card_of_injOn Prod.fst
-  · intro p hp
-    grind [mem_reprs]
-  · intro p hp q hq h
-    by_contra hpq
-    obtain ⟨hne, -⟩ := fst_ne_and_snd_ne_of_mem_reprs hp hq hpq
-    exact hne h
-
-/-- The representations of `s` inject into `Y`, hence there are at most `#Y` of them. -/
-lemma reprCount_le_right (X Y : Finset G) (s : G) : reprCount X Y s ≤ #Y := by
-  apply card_le_card_of_injOn Prod.snd
-  · intro p hp
-    grind [mem_reprs]
-  · intro p hp q hq h
-    by_contra hpq
-    obtain ⟨-, hne⟩ := fst_ne_and_snd_ne_of_mem_reprs hp hq hpq
-    exact hne h
-
-/-- Summing the representation function over a set of sums counts the pairs with sum there. -/
-lemma sum_reprCount (X Y T : Finset G) :
-    ∑ s ∈ T, reprCount X Y s = #{p ∈ X ×ˢ Y | p.1 + p.2 ∈ T} :=
-  sum_card_fiberwise_eq_card_filter _ _ _
+/-- Two distinct values are nonpositively correlated: the samples that take both are at most a
+`hitCount X k / #X ^ k` proportion of those that take one. -/
+lemma card_hits_inter_mul_le {X : Finset G} {a b : G} (ha : a ∈ X) (hb : b ∈ X) (hab : a ≠ b)
+    (k : ℕ) : #(hits X k a ∩ hits X k b) * #X ^ k ≤ hitCount X k ^ 2 := by
+  have hX : 2 ≤ #X := card_pair hab ▸ card_le_card (insert_subset ha (singleton_subset_iff.2 hb))
+  nlinarith [sub_two_pow_mul_le hX k, congrArg (· * #X ^ k) (card_hits_inter_add ha hb hab k),
+    congrArg (· ^ 2) (hitCount_add X k), congrArg (· * hitCount X k) (hitCount_add X k)]
 
 /-! ### The probability that a sum is seen -/
 
-/-- The probability that `s` belongs to the sumset of the two samples. -/
+variable [AddCommGroup G]
+
+/-- The probability that `s ∈ X' + Y'`, where `X'` and `Y'` are the sets of values of `k₁` and `k₂`
+points of `X` and `Y` chosen independently and uniformly at random. -/
 noncomputable def hitProb (X Y : Finset G) (k₁ k₂ : ℕ) (s : G) : ℝ :=
-  𝔼 ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y),
-    if s ∈ bltSample X ω.1 + bltSample Y ω.2 then (1 : ℝ) else 0
+  𝔼 ω : (Fin k₁ → X) × (Fin k₂ → Y),
+    if s ∈ univ.image (fun i ↦ (ω.1 i : G)) + univ.image (fun i ↦ (ω.2 i : G)) then 1 else 0
 
 /-- A probability is nonnegative. -/
 lemma hitProb_nonneg (X Y : Finset G) (k₁ k₂ : ℕ) (s : G) : 0 ≤ hitProb X Y k₁ k₂ s := by
   rw [hitProb, Fintype.expect_eq_sum_div_card]
   positivity
 
-/-- The expected size of the sumset of the two samples. -/
-noncomputable def expectSumset (X Y : Finset G) (k₁ k₂ : ℕ) : ℝ :=
-  𝔼 ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y), (#(bltSample X ω.1 + bltSample Y ω.2) : ℝ)
+/-- The expected size of `X' + Y'`, where `X'` and `Y'` are the sets of values of `k₁` and `k₂`
+points of `X` and `Y` chosen independently and uniformly at random. -/
+noncomputable def expectCardAdd (X Y : Finset G) (k₁ k₂ : ℕ) : ℝ :=
+  𝔼 ω : (Fin k₁ → X) × (Fin k₂ → Y),
+    (#(univ.image (fun i ↦ (ω.1 i : G)) + univ.image (fun i ↦ (ω.2 i : G))) : ℝ)
 
-/-- The expected size of the sumset of the samples is the sum, over the possible sums, of the
-probability that the sum is seen. -/
-lemma expectSumset_eq_sum_hitProb (X Y : Finset G) (k₁ k₂ : ℕ) :
-    expectSumset X Y k₁ k₂ = ∑ s ∈ X + Y, hitProb X Y k₁ k₂ s := by
-  simp only [expectSumset, hitProb, Fintype.expect_eq_sum_div_card, ← sum_div]
+omit [AddCommGroup G] in
+/-- The values of a sample from `X` lie in `X`. -/
+private lemma image_subset {X : Finset G} {k : ℕ} (f : Fin k → X) :
+    univ.image (fun i ↦ (f i : G)) ⊆ X := by
+  simp [image_subset_iff]
+
+/-- The expected size of `X' + Y'` is the sum, over `s ∈ X + Y`, of the probability that
+`s ∈ X' + Y'`. -/
+lemma expectCardAdd_eq_sum_hitProb (X Y : Finset G) (k₁ k₂ : ℕ) :
+    expectCardAdd X Y k₁ k₂ = ∑ s ∈ X + Y, hitProb X Y k₁ k₂ s := by
+  simp only [expectCardAdd, hitProb, Fintype.expect_eq_sum_div_card, ← sum_div]
   rw [sum_comm]
-  congr with ⟨f₁, f₂⟩
-  rw [sum_boole, filter_mem_eq_inter,
-    inter_eq_right.2 (add_subset_add (bltSample_subset X f₁) (bltSample_subset Y f₂))]
+  congr with ⟨f, g⟩
+  rw [sum_boole, filter_mem_eq_inter, inter_eq_right.2 (add_subset_add (image_subset f)
+    (image_subset g))]
 
 /-! ### The second-moment estimate -/
 
-/-- The number of samples of `X` containing a fixed element of `X`. -/
-def hitCount (X : Finset G) (k : ℕ) : ℕ := #X ^ k - (#X - 1) ^ k
-
-omit [AddCommGroup G] in
-/-- All elements of `X` are sampled equally often. -/
-lemma card_hits_eq_hitCount {X : Finset G} {a : G} (ha : a ∈ X) (k : ℕ) :
-    #(hits X k a) = hitCount X k := card_hits ha k
-
-omit [DecidableEq G] [AddCommGroup G] in
-/-- An element of a nonempty set is sampled at least once among all samples of `k ≥ 1` points. -/
-lemma one_le_hitCount {X : Finset G} (hX : 0 < #X) {k : ℕ} (hk : 1 ≤ k) : 1 ≤ hitCount X k :=
-  Nat.sub_pos_of_lt (Nat.pow_lt_pow_left (by grind) (by grind))
-
-omit [DecidableEq G] [AddCommGroup G] in
-/-- The samples containing a fixed element and those missing it make up all samples. -/
-private lemma hitCount_add (X : Finset G) (k : ℕ) : hitCount X k + (#X - 1) ^ k = #X ^ k :=
-  Nat.sub_add_cancel (Nat.pow_le_pow_left (Nat.sub_le _ _) k)
-
 variable {X Y : Finset G} {k₁ k₂ : ℕ} {s : G}
 
-/-- The number of representations of `s` whose two entries are both sampled. -/
-private noncomputable def sampledReprs (X Y : Finset G) (k₁ k₂ : ℕ) (s : G)
-    (ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y)) : ℝ :=
-  ∑ p ∈ reprs X Y s, (if p.1 ∈ bltSample X ω.1 then (1 : ℝ) else 0) *
-    (if p.2 ∈ bltSample Y ω.2 then (1 : ℝ) else 0)
+/-- The number of representations `s = u + v` with `u ∈ X` and `v ∈ Y` whose two entries are both
+chosen. -/
+private noncomputable def sampledReprCount (X Y : Finset G) (k₁ k₂ : ℕ) (s : G)
+    (ω : (Fin k₁ → X) × (Fin k₂ → Y)) : ℝ :=
+  ∑ p ∈ {p ∈ X ×ˢ Y | p.1 + p.2 = s}, (if p.1 ∈ univ.image fun i ↦ (ω.1 i : G) then 1 else 0) *
+    (if p.2 ∈ univ.image fun i ↦ (ω.2 i : G) then 1 else 0)
 
 omit [AddCommGroup G] in
-/-- Summing the indicator of `a` over all samples counts the samples containing `a`. -/
+/-- Summing the indicator of `a` over all samples counts the samples that take the value `a`. -/
 private lemma sum_indicator (X : Finset G) (k : ℕ) (a : G) :
-    ∑ f : Fin k → ↥X, (if a ∈ bltSample X f then (1 : ℝ) else 0) = #(hits X k a) := by
+    ∑ f : Fin k → X, (if a ∈ univ.image fun i ↦ (f i : G) then 1 else 0) = (#(hits X k a) : ℝ) := by
   rw [sum_boole]
   rfl
 
 omit [AddCommGroup G] in
-/-- Summing the product of the indicators of `a` and `b` over all samples counts the samples
-containing both. -/
+/-- Summing the product of the indicators of `a` and `b` over all samples counts the samples that
+take both values. -/
 private lemma sum_indicator_mul (X : Finset G) (k : ℕ) (a b : G) :
-    ∑ f : Fin k → ↥X, (if a ∈ bltSample X f then (1 : ℝ) else 0) *
-      (if b ∈ bltSample X f then (1 : ℝ) else 0) = #(hits X k a ∩ hits X k b) := by
+    ∑ f : Fin k → X, (if a ∈ univ.image fun i ↦ (f i : G) then 1 else 0) *
+      (if b ∈ univ.image fun i ↦ (f i : G) then 1 else 0) = (#(hits X k a ∩ hits X k b) : ℝ) := by
   simp only [ite_zero_mul_ite_zero, mul_one, sum_boole, hits, ← filter_and]
 
-/-- The first moment of the number of sampled representations. -/
-private lemma sum_sampledReprs :
-    ∑ ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y), sampledReprs X Y k₁ k₂ s ω =
-      ∑ p ∈ reprs X Y s, (#(hits X k₁ p.1) : ℝ) * #(hits Y k₂ p.2) := by
-  simp only [sampledReprs]
-  rw [sum_comm]
-  congr with p
-  rw [← sum_indicator, ← sum_indicator, sum_mul_sum, ← Fintype.sum_prod_type']
+/-- The first moment of the number of chosen representations. -/
+private lemma sum_sampledReprCount :
+    ∑ ω, sampledReprCount X Y k₁ k₂ s ω =
+      X.addConvolution Y s * (hitCount X k₁ * hitCount Y k₂) := by
+  simp only [sampledReprCount]
+  rw [sum_comm, ← card_add_eq, ← nsmul_eq_mul, ← sum_const]
+  apply sum_congr rfl
+  rintro ⟨u, v⟩ hp
+  rw [mem_filter, mem_product] at hp
+  obtain ⟨⟨hu, hv⟩, -⟩ := hp
+  rw [← card_hits hu, ← card_hits hv, ← sum_indicator, ← sum_indicator, sum_mul_sum,
+    ← Fintype.sum_prod_type']
 
-/-- The second moment of the number of sampled representations, as a double sum over pairs of
+/-- The second moment of the number of chosen representations, as a double sum over pairs of
 representations. -/
-private lemma sum_sq_sampledReprs :
-    ∑ ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y), sampledReprs X Y k₁ k₂ s ω ^ 2 =
-      ∑ p ∈ reprs X Y s, ∑ q ∈ reprs X Y s,
-        (#(hits X k₁ p.1 ∩ hits X k₁ q.1) : ℝ) * #(hits Y k₂ p.2 ∩ hits Y k₂ q.2) := by
-  simp only [sampledReprs, sq, sum_mul_sum]
+private lemma sum_sq_sampledReprCount :
+    ∑ ω, sampledReprCount X Y k₁ k₂ s ω ^ 2 =
+      ∑ p ∈ {p ∈ X ×ˢ Y | p.1 + p.2 = s}, ∑ q ∈ {p ∈ X ×ˢ Y | p.1 + p.2 = s},
+        (#(hits X k₁ p.1 ∩ hits X k₁ q.1) * #(hits Y k₂ p.2 ∩ hits Y k₂ q.2) : ℝ) := by
+  simp only [sampledReprCount, sq, sum_mul_sum]
   rw [sum_comm]
   congr with p
   rw [sum_comm]
@@ -330,76 +248,61 @@ private lemma sum_sq_sampledReprs :
   congr with ω
   ring
 
-/-- The number of sampled representations is nonnegative. -/
-private lemma sampledReprs_nonneg (ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y)) :
-    0 ≤ sampledReprs X Y k₁ k₂ s ω := by
-  unfold sampledReprs
-  positivity
-
-/-- If some representation of `s` is sampled, then `s` lies in the sumset of the samples. -/
-private lemma mem_add_of_sampledReprs_pos {ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y)}
-    (hω : 0 < sampledReprs X Y k₁ k₂ s ω) : s ∈ bltSample X ω.1 + bltSample Y ω.2 := by
-  obtain ⟨⟨u, v⟩, hp, hpne⟩ := exists_ne_zero_of_sum_ne_zero hω.ne'
-  obtain ⟨-, -, rfl⟩ := mem_reprs.1 hp
-  simp only [ne_eq, mul_eq_zero, ite_eq_right_iff, not_or, not_forall] at hpne
-  obtain ⟨⟨hu, -⟩, hv, -⟩ := hpne
-  exact add_mem_add hu hv
-
-/-- Distinct representations are nonpositively correlated, and a representation is correlated with
-itself by its own frequency. -/
-private lemma card_inter_mul_card_inter_le (hX : 0 < #X) (hY : 0 < #Y) {p q : G × G}
-    (hp : p ∈ reprs X Y s) (hq : q ∈ reprs X Y s) :
-    #(hits X k₁ p.1 ∩ hits X k₁ q.1) * #(hits Y k₂ p.2 ∩ hits Y k₂ q.2) ≤
-      (if p = q then (#(hits X k₁ q.1) : ℝ) * #(hits Y k₂ q.2) else 0) +
-        #(hits X k₁ p.1) * #(hits Y k₂ p.2) * (#(hits X k₁ q.1) * #(hits Y k₂ q.2)) /
-          (#X ^ k₁ * #Y ^ k₂) := by
-  obtain rfl | hpq := eq_or_ne p q
-  · rw [ite_eq_left rfl, inter_self, inter_self]
+/-- Distinct representations of `s` are nonpositively correlated, and a representation is correlated
+with itself by its own frequency. -/
+private lemma card_hits_inter_mul_card_hits_inter_le {p q : G × G}
+    (hp : p ∈ {p ∈ X ×ˢ Y | p.1 + p.2 = s}) (hq : q ∈ {p ∈ X ×ˢ Y | p.1 + p.2 = s}) :
+    (#(hits X k₁ p.1 ∩ hits X k₁ q.1) * #(hits Y k₂ p.2 ∩ hits Y k₂ q.2) : ℝ) ≤
+      (if p = q then (hitCount X k₁ * hitCount Y k₂ : ℝ) else 0) +
+        (hitCount X k₁ * hitCount Y k₂) ^ 2 / (#X ^ k₁ * #Y ^ k₂) := by
+  obtain ⟨u, v⟩ := p
+  obtain ⟨u', v'⟩ := q
+  rw [mem_filter, mem_product] at hp hq
+  obtain ⟨⟨hu, hv⟩, h⟩ := hp
+  obtain ⟨⟨hu', hv'⟩, rfl⟩ := hq
+  obtain rfl | huu' := eq_or_ne u u'
+  · obtain rfl := add_left_cancel h
+    rw [ite_eq_left rfl, inter_self, inter_self, card_hits hu, card_hits hv]
     exact le_add_of_nonneg_right (by positivity)
-  obtain ⟨hne₁, hne₂⟩ := fst_ne_and_snd_ne_of_mem_reprs hp hq hpq
-  obtain ⟨hp₁, hp₂, -⟩ := mem_reprs.1 hp
-  obtain ⟨hq₁, hq₂, -⟩ := mem_reprs.1 hq
-  have hx : (#(hits X k₁ p.1 ∩ hits X k₁ q.1) : ℝ) * #X ^ k₁ ≤
-      #(hits X k₁ p.1) * #(hits X k₁ q.1) := by
-    exact_mod_cast card_hits_inter_mul_le hp₁ hq₁ hne₁ k₁
-  have hy : (#(hits Y k₂ p.2 ∩ hits Y k₂ q.2) : ℝ) * #Y ^ k₂ ≤
-      #(hits Y k₂ p.2) * #(hits Y k₂ q.2) := by
-    exact_mod_cast card_hits_inter_mul_le hp₂ hq₂ hne₂ k₂
-  rw [ite_eq_right hpq, zero_add, le_div_iff₀ (by positivity)]
-  linarith [mul_le_mul hx hy (by positivity) (by positivity)]
+  have hvv' : v ≠ v' := by
+    rintro rfl
+    exact huu' (add_right_cancel h)
+  have hX : X.Nonempty := ⟨u, hu⟩
+  have hY : Y.Nonempty := ⟨v, hv⟩
+  rw [ite_eq_right (by simp [huu']), zero_add, le_div_iff₀ (by positivity), mul_mul_mul_comm,
+    mul_pow]
+  exact_mod_cast Nat.mul_le_mul (card_hits_inter_mul_le hu hu' huu' k₁)
+    (card_hits_inter_mul_le hv hv' hvv' k₂)
 
-/-- The second moment of the number of sampled representations is at most its first moment plus the
+/-- The second moment of the number of chosen representations is at most its first moment plus the
 square of its first moment, normalized by the number of samples. -/
-private lemma sum_sq_sampledReprs_le (hX : 0 < #X) (hY : 0 < #Y) :
-    ∑ ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y), sampledReprs X Y k₁ k₂ s ω ^ 2 ≤
-      ∑ p ∈ reprs X Y s, (#(hits X k₁ p.1) : ℝ) * #(hits Y k₂ p.2) +
-        (∑ p ∈ reprs X Y s, (#(hits X k₁ p.1) : ℝ) * #(hits Y k₂ p.2)) ^ 2 /
-          (#X ^ k₁ * #Y ^ k₂) := by
-  rw [sum_sq_sampledReprs]
-  grw [sum_le_sum fun p hp ↦ sum_le_sum fun q hq ↦ card_inter_mul_card_inter_le hX hY hp hq]
-  simp only [sum_add_distrib, sum_ite_eq, sum_ite_mem, inter_self, ← sum_div, ← mul_sum,
-    ← sum_mul, sq, le_refl]
-
-/-- The expected number of sampled representations, up to the number of samples. -/
-private lemma sum_card_hits_mul :
-    ∑ p ∈ reprs X Y s, (#(hits X k₁ p.1) : ℝ) * #(hits Y k₂ p.2) =
-      reprCount X Y s * (hitCount X k₁ * hitCount Y k₂) := by
-  rw [reprCount, ← nsmul_eq_mul, ← sum_const]
-  apply sum_congr rfl
-  intro p hp
-  obtain ⟨hp₁, hp₂, -⟩ := mem_reprs.1 hp
-  rw [card_hits_eq_hitCount hp₁, card_hits_eq_hitCount hp₂]
+private lemma sum_sq_sampledReprCount_le :
+    ∑ ω, sampledReprCount X Y k₁ k₂ s ω ^ 2 ≤
+      X.addConvolution Y s * (hitCount X k₁ * hitCount Y k₂) +
+        (X.addConvolution Y s * (hitCount X k₁ * hitCount Y k₂)) ^ 2 / (#X ^ k₁ * #Y ^ k₂) := by
+  rw [sum_sq_sampledReprCount]
+  grw [sum_le_sum fun p hp ↦ sum_le_sum fun q hq ↦ card_hits_inter_mul_card_hits_inter_le hp hq]
+  simp only [sum_add_distrib, sum_ite_eq, sum_ite_mem, inter_self, sum_const, nsmul_eq_mul,
+    card_add_eq]
+  exact le_of_eq (by ring)
 
 /-- The pointwise inequality of the second-moment method: `2 * c * Z - (c * Z) ^ 2` is at most the
-indicator that `s` is seen, where `Z` is the number of sampled representations of `s`. -/
-private lemma two_mul_sub_sq_le (c : ℝ) (ω : (Fin k₁ → ↥X) × (Fin k₂ → ↥Y)) :
-    2 * (c * sampledReprs X Y k₁ k₂ s ω) - (c * sampledReprs X Y k₁ k₂ s ω) ^ 2 ≤
-      if s ∈ bltSample X ω.1 + bltSample Y ω.2 then (1 : ℝ) else 0 := by
-  obtain h | h := (sampledReprs_nonneg (s := s) ω).eq_or_lt
-  · simp only [← h, mul_zero, sub_zero, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow]
-    positivity
-  · rw [ite_eq_left (mem_add_of_sampledReprs_pos h)]
-    nlinarith [sq_nonneg (1 - c * sampledReprs X Y k₁ k₂ s ω)]
+indicator of `s ∈ X' + Y'`, where `Z` is the number of chosen representations of `s`. -/
+private lemma two_mul_sub_sq_le (c : ℝ) (ω : (Fin k₁ → X) × (Fin k₂ → Y)) :
+    2 * (c * sampledReprCount X Y k₁ k₂ s ω) - (c * sampledReprCount X Y k₁ k₂ s ω) ^ 2 ≤
+      if s ∈ univ.image (fun i ↦ (ω.1 i : G)) + univ.image (fun i ↦ (ω.2 i : G)) then 1 else 0 := by
+  obtain ⟨f, g⟩ := ω
+  by_cases hs : s ∈ univ.image (fun i ↦ (f i : G)) + univ.image (fun i ↦ (g i : G))
+  · rw [ite_eq_left hs]
+    nlinarith [sq_nonneg (1 - c * sampledReprCount X Y k₁ k₂ s (f, g))]
+  rw [ite_eq_right hs]
+  suffices sampledReprCount X Y k₁ k₂ s (f, g) = 0 by simp [this]
+  apply sum_eq_zero
+  rintro ⟨u, v⟩ hp
+  obtain ⟨-, rfl⟩ := mem_filter.1 hp
+  simp only [mul_eq_zero, ite_eq_right_iff, one_ne_zero, imp_false]
+  by_contra! huv
+  exact hs (add_mem_add huv.1 huv.2)
 
 /-- The algebra of the second-moment method: if `T ≥ 2 * c * W - c ^ 2 * S` for every `c` and
 `S ≤ W + W ^ 2 / N`, then the choice `c = N / (N + W)` gives `T / N ≥ W / (N + W)`. -/
@@ -413,46 +316,47 @@ private lemma div_add_le_div_of_second_moment {N W S T : ℝ} (hN : 0 < N) (hW :
   rw [div_le_div_iff₀ (by positivity) hN]
   linarith
 
-/-- The core second-moment bound: the probability that `s` is seen is at least `W / (N + W)`, where
-`N` is the number of samples and `W / N` is the expected number of representations of `s` whose two
-entries are both sampled. -/
+/-- The core second-moment bound: the probability that `s ∈ X' + Y'` is at least `W / (N + W)`,
+where `N` is the number of samples and `W / N` is the expected number of representations of `s`
+whose two entries are both chosen. -/
 private lemma div_add_le_hitProb (hs : s ∈ X + Y) (hk₁ : 1 ≤ k₁) (hk₂ : 1 ≤ k₂) :
-    reprCount X Y s * (hitCount X k₁ * hitCount Y k₂) /
-        (#X ^ k₁ * #Y ^ k₂ + reprCount X Y s * (hitCount X k₁ * hitCount Y k₂)) ≤
-      hitProb X Y k₁ k₂ s := by
-  obtain ⟨u, hu, v, hv, huv⟩ := mem_add.1 hs
-  have hX : 0 < #X := card_pos.2 ⟨u, hu⟩
-  have hY : 0 < #Y := card_pos.2 ⟨v, hv⟩
-  have hW : (0 : ℝ) < reprCount X Y s * (hitCount X k₁ * hitCount Y k₂) :=
-    mul_pos (Nat.cast_pos.2 (card_pos.2 ⟨(u, v), mem_reprs.2 ⟨hu, hv, huv⟩⟩))
-      (mul_pos (Nat.cast_pos.2 (one_le_hitCount hX hk₁)) (Nat.cast_pos.2 (one_le_hitCount hY hk₂)))
-  rw [hitProb, Fintype.expect_eq_sum_div_card,
-    (by simp : (Fintype.card ((Fin k₁ → ↥X) × (Fin k₂ → ↥Y)) : ℝ) = #X ^ k₁ * #Y ^ k₂)]
-  refine div_add_le_div_of_second_moment (by positivity) hW
-    (sum_card_hits_mul (s := s) ▸ sum_sq_sampledReprs_le hX hY) ?_
-  intro c
-  grw [← sum_le_sum fun ω _ ↦ two_mul_sub_sq_le c ω]
-  simp only [mul_pow, sum_sub_distrib, ← mul_sum, sum_sampledReprs, sum_card_hits_mul, le_refl]
-
-/-- **The one-sum sampling estimate.** If `s` has `r` representations as a sum of an element of `X`
-and an element of `Y`, then `s` is seen by the two samples with probability at least
-`r * k₁ * k₂ / (9 * #X * #Y + r * k₁ * k₂)`. -/
-lemma div_le_hitProb (hs : s ∈ X + Y) (hk₁ : 1 ≤ k₁) (hk₂ : 1 ≤ k₂)
-    (hkX : 3 * k₁ ≤ 4 * #X) (hkY : 3 * k₂ ≤ 4 * #Y) :
-    reprCount X Y s * (k₁ * k₂) / (9 * (#X * #Y) + reprCount X Y s * (k₁ * k₂)) ≤
+    X.addConvolution Y s * (hitCount X k₁ * hitCount Y k₂) /
+        (#X ^ k₁ * #Y ^ k₂ + X.addConvolution Y s * (hitCount X k₁ * hitCount Y k₂)) ≤
       hitProb X Y k₁ k₂ s := by
   obtain ⟨u, hu, v, hv, -⟩ := mem_add.1 hs
-  have hX : 0 < #X := card_pos.2 ⟨u, hu⟩
-  have hY : 0 < #Y := card_pos.2 ⟨v, hv⟩
+  have hX : X.Nonempty := ⟨u, hu⟩
+  have hY : Y.Nonempty := ⟨v, hv⟩
+  rw [hitProb, Fintype.expect_eq_sum_div_card,
+    (by simp : (Fintype.card ((Fin k₁ → X) × (Fin k₂ → Y)) : ℝ) = #X ^ k₁ * #Y ^ k₂)]
+  refine div_add_le_div_of_second_moment (by positivity) (mul_pos (by simpa using hs)
+    (mul_pos (Nat.cast_pos.2 (hitCount_pos hX hk₁)) (Nat.cast_pos.2 (hitCount_pos hY hk₂))))
+    sum_sq_sampledReprCount_le ?_
+  intro c
+  grw [← sum_le_sum fun ω _ ↦ two_mul_sub_sq_le c ω]
+  simp only [mul_pow, sum_sub_distrib, ← mul_sum, sum_sampledReprCount, le_refl]
+
+/-- Monotonicity of `t ↦ t / (1 + t)`, in the form used to weaken the second-moment bound. -/
+private lemma div_add_le_div_add {a b c d : ℝ} (ha : 0 ≤ a) (hb : 0 < b) (hc : 0 ≤ c) (hd : 0 < d)
+    (h : a * d ≤ c * b) : a / (b + a) ≤ c / (d + c) := by
+  rw [div_le_div_iff₀ (by positivity) (by positivity)]
+  nlinarith
+
+/-- **The one-sum sampling estimate.** If `s` has `r` representations as a sum of an element of `X`
+and an element of `Y`, and `3 * k₁ ≤ 4 * #X` and `3 * k₂ ≤ 4 * #Y`, then `s ∈ X' + Y'` with
+probability at least `r * k₁ * k₂ / (9 * #X * #Y + r * k₁ * k₂)`. -/
+lemma div_le_hitProb (hs : s ∈ X + Y) (hk₁ : 1 ≤ k₁) (hk₂ : 1 ≤ k₂) (hkX : 3 * k₁ ≤ 4 * #X)
+    (hkY : 3 * k₂ ≤ 4 * #Y) :
+    X.addConvolution Y s * (k₁ * k₂) / (9 * (#X * #Y) + X.addConvolution Y s * (k₁ * k₂)) ≤
+      hitProb X Y k₁ k₂ s := by
+  obtain ⟨u, hu, v, hv, -⟩ := mem_add.1 hs
+  have hX : X.Nonempty := ⟨u, hu⟩
+  have hY : Y.Nonempty := ⟨v, hv⟩
   grw [← div_add_le_hitProb hs hk₁ hk₂]
   apply div_add_le_div_add (by positivity) (by positivity) (by positivity) (by positivity)
-  have hcomb : ((k₁ * #X ^ k₁ * (k₂ * #Y ^ k₂) : ℕ) : ℝ) ≤
-      ((3 * #X * hitCount X k₁ * (3 * #Y * hitCount Y k₂) : ℕ) : ℝ) := by
-    exact_mod_cast Nat.mul_le_mul (mul_pow_le_three_mul_mul hX hk₁ hkX (hitCount_add X k₁))
-      (mul_pow_le_three_mul_mul hY hk₂ hkY (hitCount_add Y k₂))
-  push_cast at hcomb
-  nlinarith [mul_le_mul_of_nonneg_left hcomb (by positivity : (0 : ℝ) ≤ reprCount X Y s)]
+  have h : (k₁ * #X ^ k₁ * (k₂ * #Y ^ k₂) : ℝ) ≤
+      3 * #X * hitCount X k₁ * (3 * #Y * hitCount Y k₂) := by
+    exact_mod_cast Nat.mul_le_mul (mul_pow_le_three_mul_hitCount hX hk₁ hkX)
+      (mul_pow_le_three_mul_hitCount hY hk₂ hkY)
+  nlinarith [mul_le_mul_of_nonneg_left h (by positivity : (0 : ℝ) ≤ X.addConvolution Y s)]
 
-end Sampling
-
-end LargeSumsetsFromSubsets
+end LargeSumsetsFromSubsets.MediumSizedSubsets

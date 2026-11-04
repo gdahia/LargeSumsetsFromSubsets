@@ -5,7 +5,7 @@ Authors: Gabriel Dahia
 -/
 module
 
-public import LargeSumsetsFromSubsets.ArithmeticProgression
+public import LargeSumsetsFromSubsets.ArithmeticProgression.Basic
 import Mathlib.Tactic.Ring.RingNF
 
 /-!
@@ -71,8 +71,8 @@ private lemma le_and_lt_of_add_notMem_arithProg {p : ℕ} {u : ZMod p} {w m L : 
 /-- **Lemma 12** of Bollobás, Leader and Tiba, for one point. If `x` is not within `L` of the
 interval `I = arithProg u 1 m`, some block `arithProg (v + i * l) 1 l`, `i < n / l`, of
 `J = arithProg v 1 n` has its translate by `x` disjoint from `I + J`. -/
-lemma exists_lt_disjoint_image_add_arithProg {p : ℕ} [NeZero p] {u v x : ZMod p} {m n L l : ℕ}
-    (hmnL : m + n + L ≤ p) (hl : 1 ≤ l) (hln : 2 * l ≤ n) (hlL : 2 * l ≤ L)
+lemma exists_lt_disjoint_image_add_arithProg {p : ℕ} [NeZero p] {u x : ZMod p} (v : ZMod p)
+    {m n L l : ℕ} (hmnL : m + n + L ≤ p) (hl : 1 ≤ l) (hln : 2 * l ≤ n) (hlL : 2 * l ≤ L)
     (hx : x ∉ arithProg (u - L) 1 (m + 2 * L)) :
     ∃ i < n / l, Disjoint ((arithProg (v + (i * l : ℕ)) 1 l).image (x + ·))
       (arithProg u 1 m + arithProg v 1 n) := by

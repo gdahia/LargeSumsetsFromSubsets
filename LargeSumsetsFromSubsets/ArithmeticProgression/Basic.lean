@@ -7,6 +7,8 @@ module
 
 public import LargeSumsetsFromSmallSubsets.NearCauchyDavenport.Progression
 public import Mathlib.Data.ZMod.Basic
+import Mathlib.Tactic.Abel
+import Mathlib.Tactic.Ring.RingNF
 
 /-!
 # Arithmetic progressions
@@ -15,8 +17,8 @@ The arithmetic progression `arithProg a d n = {a, a + d, …, a + (n - 1) • d}
 In a commutative ring it is the progression of the same name in `LargeSumsetsFromSmallSubsets`. In
 `ZMod p` the progressions of common difference `1` are the intervals. This file proves the facts
 about intervals of `ZMod p` used in the proof of Theorem 1 of Bollobás, Leader and Tiba: their
-sizes, membership through `ZMod.val`, and their behavior under translation and under multiplication
-by a unit.
+sizes, membership through `ZMod.val`, how they split into consecutive intervals, and their behavior
+under translation, reflection and multiplication by a unit.
 
 ## Main definitions
 
@@ -28,8 +30,9 @@ by a unit.
   `LargeSumsetsFromSmallSubsets`.
 * `mem_arithProg_one_iff`: `x ∈ arithProg a 1 n ↔ (x - a).val < n` in `ZMod p`, for `n ≤ p`.
 * `card_arithProg_one`: an interval of `ZMod p` of length `n ≤ p` has `n` elements.
-* `image_add_arithProg`, `image_mul_arithProg`: translates and multiples of arithmetic progressions
-  are arithmetic progressions.
+* `disjoint_arithProg_one`: two consecutive intervals of total length at most `p` are disjoint.
+* `image_add_arithProg`, `image_neg_arithProg`, `image_mul_arithProg`: translates, reflections and
+  multiples of arithmetic progressions are arithmetic progressions.
 * `ne_zero_of_two_le_card_of_subset_arithProg`: a set with at least two elements does not lie in a
   progression of common difference zero.
 -/
@@ -82,6 +85,33 @@ lemma ne_zero_of_two_le_card_of_subset_arithProg {s : Finset G} {a d : G} {m : �
 
 end AddCommMonoid
 
+section AddCommGroup
+
+variable {G : Type*} [AddCommGroup G] [DecidableEq G]
+
+/-- Negation maps arithmetic progressions to arithmetic progressions. -/
+lemma image_neg_arithProg (a d : G) (n : ℕ) :
+    (arithProg a d n).image Neg.neg = arithProg (-a) (-d) n := by
+  simp [arithProg, image_image, Function.comp_def, add_comm]
+
+/-- Reversing an arithmetic progression changes the sign of its common difference. -/
+lemma arithProg_neg (a d : G) (n : ℕ) : arithProg a (-d) n = arithProg (a - (n - 1) • d) d n := by
+  ext x
+  simp only [mem_arithProg]
+  constructor <;>
+  · rintro ⟨i, hi, rfl⟩
+    obtain ⟨j, rfl⟩ := Nat.exists_eq_add_of_lt hi
+    refine ⟨j, by grind, ?_⟩
+    rw [(by grind : i + j + 1 - 1 = j + i), add_nsmul, smul_neg]
+    abel
+
+end AddCommGroup
+
+/-- Multiplication by `u` maps arithmetic progressions to arithmetic progressions. -/
+lemma image_mul_arithProg {R : Type*} [CommSemiring R] [DecidableEq R] (u a d : R) (n : ℕ) :
+    (arithProg a d n).image (u * ·) = arithProg (u * a) (u * d) n := by
+  simp [arithProg, image_image, Function.comp_def, mul_add, mul_left_comm]
+
 /-- In a commutative ring, the progressions of *Large sumsets from small subsets*, written with
 `i * d`, are the progressions `arithProg a d n`. -/
 lemma nearCauchyDavenport_arithProg_eq {R : Type*} [CommRing R] [DecidableEq R] (a d : R) (n : ℕ) :
@@ -114,14 +144,44 @@ lemma card_arithProg_one (a : ZMod p) {n : ℕ} (hn : n ≤ p) : #(arithProg a 1
   rw [← ZMod.val_natCast_of_lt (n := p) (by grind : i < p),
     ← ZMod.val_natCast_of_lt (n := p) (by grind : j < p), hij]
 
-lemma arithProg_one_eq_univ [NeZero p] (a : ZMod p) : arithProg a 1 p = univ := by
+/-- An interval splits into two consecutive intervals. -/
+lemma arithProg_one_add_eq_union (a : ZMod p) (m n : ℕ) :
+    arithProg a 1 (m + n) = arithProg a 1 m ∪ arithProg (a + m) 1 n := by
+  rw [arithProg_add, nsmul_one]
+
+/-- Two consecutive intervals of total length at most `p` are disjoint. -/
+lemma disjoint_arithProg_one (a : ZMod p) {m n : ℕ} (h : m + n ≤ p) :
+    Disjoint (arithProg a 1 m) (arithProg (a + m) 1 n) := by
+  rw [← card_union_eq_card_add_card, ← arithProg_one_add_eq_union, card_arithProg_one _ h,
+    card_arithProg_one _ (by grind), card_arithProg_one _ (by grind)]
+
+/-- The reflection of an interval is an interval of the same length. -/
+lemma image_neg_arithProg_one (a : ZMod p) (n : ℕ) :
+    (arithProg a 1 n).image Neg.neg = arithProg (-(a + n) + 1) 1 n := by
+  ext x
+  simp only [mem_image, mem_arithProg, nsmul_one]
+  constructor
+  · rintro ⟨_, ⟨i, hi, rfl⟩, rfl⟩
+    refine ⟨n - (1 + i), by grind, ?_⟩
+    push_cast [Nat.cast_sub (by grind : 1 + i ≤ n)]
+    ring
+  · rintro ⟨j, hj, rfl⟩
+    refine ⟨_, ⟨n - (1 + j), by grind, rfl⟩, ?_⟩
+    push_cast [Nat.cast_sub (by grind : 1 + j ≤ n)]
+    ring
+
+variable [NeZero p]
+
+lemma arithProg_one_eq_univ (a : ZMod p) : arithProg a 1 p = univ := by
   ext x
   simp [mem_arithProg_one_iff le_rfl, ZMod.val_lt]
 
-/-- Multiplication by `u` maps arithmetic progressions to arithmetic progressions. -/
-lemma image_mul_arithProg (u a d : ZMod p) (n : ℕ) :
-    (arithProg a d n).image (u * ·) = arithProg (u * a) (u * d) n := by
-  simp [arithProg, image_image, Function.comp_def, mul_add, mul_left_comm]
+/-- An interval of length more than `p` is the interval of length `p`. -/
+lemma arithProg_one_eq_min (a : ZMod p) (n : ℕ) : arithProg a 1 n = arithProg a 1 (min n p) := by
+  rcases le_total n p with h | h
+  · rw [min_eq_left h]
+  · rw [min_eq_right h, arithProg_one_eq_univ]
+    exact eq_univ_of_forall fun x ↦ arithProg_mono a 1 h (by simp [arithProg_one_eq_univ])
 
 end ZMod
 

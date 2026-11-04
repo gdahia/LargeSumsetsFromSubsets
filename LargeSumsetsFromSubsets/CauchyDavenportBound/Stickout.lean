@@ -5,10 +5,10 @@ Authors: Gabriel Dahia
 -/
 module
 
+public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
 public import Mathlib.Algebra.Group.Pointwise.Finset.Basic
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
-public import Mathlib.Algebra.BigOperators.Group.Finset.Defs
 
 /-!
 # Sums that stick out of a set
@@ -28,7 +28,7 @@ asks for `8 * #X, 8 * #W ≤ #Y < p / 2` instead, and samples at random.
 @[expose] public section
 
 open Finset
-open scoped BigOperators Pointwise
+open scoped Pointwise
 
 namespace LargeSumsetsFromSubsets
 
@@ -67,8 +67,8 @@ lemma card_mul_card_le_sum_card_add_singleton_sdiff (X Y V : Finset G) :
 
 /-- If `2 * #V ≤ #Y` and `Y` is nonempty, some translate `X + {y}`, `y ∈ Y`, has at least `#X / 2`
 points outside `V`. -/
-lemma exists_card_le_two_mul_card_add_singleton_sdiff {X Y V : Finset G} (hY : Y.Nonempty)
-    (hV : 2 * #V ≤ #Y) : ∃ y ∈ Y, #X ≤ 2 * #((X + {y}) \ V) := by
+lemma exists_card_le_two_mul_card_add_singleton_sdiff (X : Finset G) {Y V : Finset G}
+    (hY : Y.Nonempty) (hV : 2 * #V ≤ #Y) : ∃ y ∈ Y, #X ≤ 2 * #((X + {y}) \ V) := by
   refine exists_le_of_sum_le hY ?_
   rw [sum_const_nat (fun _ _ ↦ rfl), ← mul_sum]
   grind [card_mul_card_le_sum_card_add_singleton_sdiff X Y V, Nat.mul_le_mul_left #X hV]
@@ -84,7 +84,7 @@ lemma exists_subset_min_le_two_mul_card_add_sdiff (X : Finset G) {Y W : Finset G
     obtain ⟨Y', hY'Y, hY'j, hY'⟩ := ih (by grind)
     by_cases hk : 2 * k ≤ 2 * #((X + Y') \ W)
     · exact ⟨Y', hY'Y, by grind, by grind⟩
-    obtain ⟨y, hy, hXy⟩ := exists_card_le_two_mul_card_add_singleton_sdiff (X := X)
+    obtain ⟨y, hy, hXy⟩ := exists_card_le_two_mul_card_add_singleton_sdiff X
       (card_pos.1 (by grind)) (by grind [card_union_le, union_sdiff_self_eq_union] :
         2 * #(W ∪ (X + Y')) ≤ #Y)
     refine ⟨Y' ∪ {y}, union_subset hY'Y (by simpa), by grind [card_union_le, card_singleton], ?_⟩

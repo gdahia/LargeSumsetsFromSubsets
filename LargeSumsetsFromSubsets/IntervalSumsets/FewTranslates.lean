@@ -10,7 +10,8 @@ public import Mathlib.Algebra.Order.Archimedean.Real.Basic
 public import Mathlib.Data.Int.Interval
 
 import LargeSumsetsFromSmallSubsets.FewTranslates.NearInterval
-import LargeSumsetsFromSubsets.ArithmeticProgression
+import LargeSumsetsFromSubsets.ArithmeticProgression.Basic
+import Mathlib.Algebra.Group.Pointwise.Finset.Interval
 import Mathlib.Combinatorics.Additive.CauchyDavenport
 import Mathlib.Tactic.Rify
 
@@ -100,12 +101,21 @@ lemma card_image_sdiff_image_of_injOn {α β : Type*} [DecidableEq α] [Decidabl
   rw [← image_sdiff_of_injOn_union hf,
     card_image_of_injOn (hf.mono (coe_subset.2 (sdiff_subset.trans subset_union_left)))]
 
-/-- A sumset of integers lies in the interval of sums of the endpoints. -/
-lemma add_subset_Ico {s t : Finset ℤ} {a b c d : ℤ} (hs : s ⊆ Ico a b) (ht : t ⊆ Ico c d) :
-    s + t ⊆ Ico (a + c) (b + d) := by
-  intro z hz
-  obtain ⟨u, hu, v, hv, rfl⟩ := mem_add.mp hz
-  grind [hs hu, ht hv]
+/-- If the cast to `ZMod q` is injective on `s ∪ Ico a (a + n)`, the image of `s` misses as many
+points of the interval of `ZMod q` starting at `a` as `s` misses of `Ico a (a + n)`. -/
+lemma card_arithProg_sdiff_image_intCast {q : ℕ} {a : ℤ} {n : ℕ} {s : Finset ℤ}
+    (h : Set.InjOn (Int.cast : ℤ → ZMod q) ↑(s ∪ Ico a (a + n))) :
+    #(NearCauchyDavenport.arithProg (a : ZMod q) 1 n \ s.image Int.cast) =
+      #(Ico a (a + n) \ s) := by
+  rw [← image_intCast_Ico_eq_arithProg, card_image_sdiff_image_of_injOn (by rwa [union_comm])]
+
+/-- If the cast to `ZMod q` is injective on `s ∪ Ico a (a + n)`, the image of `s` has as many points
+outside the interval of `ZMod q` starting at `a` as `s` has outside `Ico a (a + n)`. -/
+lemma card_image_intCast_sdiff_arithProg {q : ℕ} {a : ℤ} {n : ℕ} {s : Finset ℤ}
+    (h : Set.InjOn (Int.cast : ℤ → ZMod q) ↑(s ∪ Ico a (a + n))) :
+    #(s.image Int.cast \ NearCauchyDavenport.arithProg (a : ZMod q) 1 n) =
+      #(s \ Ico a (a + n)) := by
+  rw [← image_intCast_Ico_eq_arithProg, card_image_sdiff_image_of_injOn h]
 
 /-- The cast to `ZMod q`, injective on `s + t`, preserves the size of the sumset `s + t`. -/
 lemma card_image_intCast_add_image_intCast {q : ℕ} {s t : Finset ℤ}
@@ -138,6 +148,49 @@ lemma card_Ico_sdiff_add_card {a : ℤ} {m : ℕ} {X : Finset ℤ} (hX : X ⊆ I
   simp
 
 /-- The form of Theorem 31 of *Large sumsets from small subsets* proved in
+`LargeSumsetsFromSmallSubsets`, carried to integers by the cast to `ZMod q` for a prime `q` with
+`2 * (#A + #B) ≤ q`, injective on `A ∪ Ico x (x + m)`, on `Ico y (y + n)` and on `A + B`. Let
+`A` and `B ⊆ Ico y (y + n)` have at least two elements, with `y` and `y + n - 1` in `B`, let
+`α * #B ≤ μ` and `δ ≤ 1 / 800`, where `μ = min #A #B`, and let `Ico x (x + m) \ A` and
+`A \ Ico x (x + m)` have at most `δ * μ` elements, `Ico y (y + n) \ B` at most `5 * δ * μ`,
+`m ≤ #A + δ * μ` and `n ≤ #B + 5 * δ * μ`. Then some `F ⊆ B` with at most
+`⌈64 / α⌉₊ ^ 2 + 2 * ⌈64 / α⌉₊ + 10` elements has `#A + n ≤ #(A + F) + 1`. -/
+lemma exists_subset_card_le_add_le_card_add_of_injOn_intCast {q : ℕ} [Fact q.Prime] {α δ : ℝ}
+    (hα : 0 < α) (hδ : δ ≤ 1 / 800) {x y : ℤ} {m n : ℕ} {A B : Finset ℤ}
+    (hAq : Set.InjOn (Int.cast : ℤ → ZMod q) ↑(A ∪ Ico x (x + m)))
+    (hJq : Set.InjOn (Int.cast : ℤ → ZMod q) ↑(Ico y (y + n)))
+    (hABq : Set.InjOn (Int.cast : ℤ → ZMod q) ↑(A + B)) (hq : 2 * (#A + #B) ≤ q)
+    (hB : B ⊆ Ico y (y + n)) (hyB : y ∈ B) (hyB' : y + n - 1 ∈ B) (hA₂ : 2 ≤ #A) (hB₂ : 2 ≤ #B)
+    (hαB : α * #B ≤ min (#A : ℝ) #B) (hIA : #(Ico x (x + m) \ A) ≤ δ * min (#A : ℝ) #B)
+    (hAI : #(A \ Ico x (x + m)) ≤ δ * min (#A : ℝ) #B)
+    (hJB : #(Ico y (y + n) \ B) ≤ 5 * δ * min (#A : ℝ) #B) (hm : m ≤ #A + δ * min (#A : ℝ) #B)
+    (hn : n ≤ #B + 5 * δ * min (#A : ℝ) #B) :
+    ∃ F ⊆ B, #F ≤ ⌈64 / α⌉₊ ^ 2 + 2 * ⌈64 / α⌉₊ + 10 ∧ #A + n ≤ #(A + F) + 1 := by
+  have hcA : #(A.image (Int.cast : ℤ → ZMod q)) = #A := card_image_of_injOn (hAq.mono (by simp))
+  have hcB : #(B.image (Int.cast : ℤ → ZMod q)) = #B := card_image_of_injOn (hJq.mono hB)
+  have hp : (#(A.image (Int.cast : ℤ → ZMod q)) + #(B.image (Int.cast : ℤ → ZMod q)) : ℝ) ≤
+      (1 - 1 / 2) * q := by
+    rw [hcA, hcB]
+    rify at hq
+    linarith
+  rw [← card_arithProg_sdiff_image_intCast hAq] at hIA
+  rw [← card_image_intCast_sdiff_arithProg hAq] at hAI
+  rw [← card_arithProg_sdiff_image_intCast (by rwa [union_eq_right.2 hB])] at hJB
+  rw [← hcA, ← hcB, ← Nat.cast_min] at hαB hIA hAI hJB hm hn
+  obtain ⟨F', hF'B, hF'c, hF'⟩ :=
+    FewTranslates.exists_subset_card_le_add_le_card_add_of_card_sdiff_le (d := 1) hα
+      (by norm_num : (0 : ℝ) < 1 / 2) (by linarith) one_ne_zero (hcA ▸ hA₂) (hcB ▸ hB₂) hαB hp
+      (mem_image_of_mem _ hyB)
+      (by simpa [add_sub_assoc] using mem_image_of_mem (Int.cast : ℤ → ZMod q) hyB')
+      ((image_subset_image hB).trans (image_intCast_Ico_eq_arithProg q y n).le) hIA hAI hJB hm hn
+  obtain ⟨F, hFB, rfl⟩ := subset_image_iff.1 hF'B
+  rw [card_image_of_injOn (hJq.mono (coe_subset.2 (hFB.trans hB))),
+    (by ring : 32 / (α * (1 / 2)) = 64 / α)] at hF'c
+  rw [hcA, card_image_intCast_add_image_intCast
+    (hABq.mono (coe_subset.2 (add_subset_add_left hFB)))] at hF'
+  exact ⟨F, hFB, hF'c, hF'⟩
+
+/-- The form of Theorem 31 of *Large sumsets from small subsets* proved in
 `LargeSumsetsFromSmallSubsets`, for sets close to intervals of integers. Let
 `A ⊆ Ico (x - R) (x + m + R)` and `B ⊆ Ico y (y + n)` have at least two elements, with `y` and
 `y + n - 1` in `B`, let `α * #B ≤ μ` and `δ ≤ 1 / 800`, where `μ = min #A #B`, and let
@@ -154,34 +207,14 @@ lemma exists_subset_card_le_add_le_card_add_of_card_sdiff_le_int {α δ : ℝ} (
     ∃ F ⊆ B, #F ≤ ⌈64 / α⌉₊ ^ 2 + 2 * ⌈64 / α⌉₊ + 10 ∧ #A + n ≤ #(A + F) + 1 := by
   obtain ⟨q, hq, hqp⟩ := Nat.exists_infinite_primes (2 * (#A + #B + m + n + 2 * R) + 1)
   have : Fact q.Prime := ⟨hqp⟩
-  have hAq := injOn_intCast_of_subset_Ico (q := q)
-    (union_subset hA (Ico_subset_Ico (by grind) (by grind) : Ico x (x + m) ⊆ _)) (by grind)
-  have hJq := injOn_intCast_of_subset_Ico (q := q) (subset_refl (Ico y (y + n))) (by grind)
-  have hcA : #(A.image (Int.cast : ℤ → ZMod q)) = #A := card_image_of_injOn (hAq.mono (by simp))
-  have hcB : #(B.image (Int.cast : ℤ → ZMod q)) = #B := card_image_of_injOn (hJq.mono hB)
-  have hp : (#(A.image (Int.cast : ℤ → ZMod q)) + #(B.image (Int.cast : ℤ → ZMod q)) : ℝ) ≤
-      (1 - 1 / 2) * q := by
-    rw [hcA, hcB]
-    rify at hq
-    linarith
-  rw [← card_image_sdiff_image_of_injOn (s := Ico x (x + m)) (t := A) (by rwa [union_comm]),
-    image_intCast_Ico_eq_arithProg] at hIA
-  rw [← card_image_sdiff_image_of_injOn hAq, image_intCast_Ico_eq_arithProg] at hAI
-  rw [← card_image_sdiff_image_of_injOn (s := Ico y (y + n)) (t := B)
-    (by rwa [union_eq_left.2 hB]), image_intCast_Ico_eq_arithProg] at hJB
-  rw [← hcA, ← hcB, ← Nat.cast_min] at hαB hIA hAI hJB hm hn
-  obtain ⟨F', hF'B, hF'c, hF'⟩ :=
-    FewTranslates.exists_subset_card_le_add_le_card_add_of_card_sdiff_le (d := 1) hα
-      (by norm_num : (0 : ℝ) < 1 / 2) (by linarith) one_ne_zero (hcA ▸ hA₂) (hcB ▸ hB₂) hαB hp
-      (mem_image_of_mem _ hyB)
-      (by simpa [add_sub_assoc] using mem_image_of_mem (Int.cast : ℤ → ZMod q) hyB')
-      ((image_subset_image hB).trans (image_intCast_Ico_eq_arithProg q y n).le) hIA hAI hJB hm hn
-  obtain ⟨F, hFB, rfl⟩ := subset_image_iff.1 hF'B
-  rw [card_image_of_injOn (hJq.mono (coe_subset.2 (hFB.trans hB))),
-    (by ring : 32 / (α * (1 / 2)) = 64 / α)] at hF'c
-  rw [hcA, card_image_intCast_add_image_intCast
-    (injOn_intCast_of_subset_Ico (add_subset_Ico hA (hFB.trans hB)) (by grind))] at hF'
-  exact ⟨F, hFB, hF'c, hF'⟩
+  exact exists_subset_card_le_add_le_card_add_of_injOn_intCast (q := q) hα hδ
+    (injOn_intCast_of_subset_Ico (union_subset hA (Ico_subset_Ico (by grind) (by grind)))
+      (by grind))
+    (injOn_intCast_of_subset_Ico subset_rfl (by grind))
+    (injOn_intCast_of_subset_Ico
+      ((add_subset_add (hA.trans Ico_subset_Icc_self) hB).trans (Icc_add_Ico_subset _ _ _ _))
+      (by grind))
+    (by grind) hB hyB hyB' hA₂ hB₂ hαB hIA hAI hJB hm hn
 
 /-- Let `A` be within `γ * min m n` of `Ico x (x + m)` and let `B ⊆ Ico y (y + n)` miss at most
 `γ * min m n` of its points, with `γ ≤ 1 / 1600`. Then `m ≤ #A + γ * min m n`,
@@ -199,9 +232,9 @@ lemma le_card_add_mul_min_of_card_symmDiff_le {γ : ℝ} (hγ : γ ≤ 1 / 1600)
     (by linarith [min_le_right (m : ℝ) n, card_Ico_sdiff_add_card hB] :
       (1 - γ) * min (m : ℝ) n ≤ #B)
   refine ⟨by linarith, by linarith [card_Ico_sdiff_add_card hB], ?_, ?_⟩ <;>
-    nlinarith [(by positivity : (0 : ℝ) ≤ min (m : ℝ) n)]
+    nlinarith [(by positivity : 0 ≤ min (m : ℝ) n)]
 
-/-- **Cauchy–Davenport in `ℤ`.** Nonempty finite sets of integers have `#A + #B - 1 ≤ #(A + B)`. -/
+/-- **Cauchy-Davenport in `ℤ`.** Nonempty finite sets of integers have `#A + #B - 1 ≤ #(A + B)`. -/
 lemma card_add_card_sub_one_le_card_add {A B : Finset ℤ} (hA : A.Nonempty) (hB : B.Nonempty) :
     #A + #B - 1 ≤ (#(A + B) : ℝ) := by
   rw [sub_le_iff_le_add]
@@ -226,7 +259,7 @@ lemma exists_subset_card_le_card_add_card_sub_one_le_card_add_of_card_symmDiff_l
   have hαB : α / 2 * #B ≤ min (#A : ℝ) #B := by
     linarith [mul_le_mul_of_nonneg_left hBn hα.le,
       le_min hαn (mul_le_of_le_one_left (Nat.cast_nonneg n) hα₁)]
-  obtain ⟨hA₂, hB₂⟩ := le_min_iff.1 (by linarith : (2 : ℝ) ≤ min (#A : ℝ) #B)
+  obtain ⟨hA₂, hB₂⟩ := le_min_iff.1 (by linarith : 2 ≤ min (#A : ℝ) #B)
   obtain ⟨F, hFB, hFc, hF⟩ := exists_subset_card_le_add_le_card_add_of_card_sdiff_le_int
     (by positivity) le_rfl hA hB hyB hyB' (by exact_mod_cast hA₂) (by exact_mod_cast hB₂) hαB hIA'
     hAI' (by linarith) (by linarith) (by linarith)
@@ -253,7 +286,7 @@ lemma FewTranslatesInt.mono {γ γ' α : ℝ} {c : ℕ} (h : FewTranslatesInt γ
 
 /-- Theorem 5 of Bollobás, Leader and Tiba in the form used for Theorem 8: there is `γ > 0` such
 that for every `α > 0` some `c` satisfies `FewTranslatesInt γ α c`. If `B` has at most `c` elements,
-`F = B` works by the Cauchy–Davenport theorem in `ℤ`. Otherwise
+`F = B` works by the Cauchy-Davenport theorem in `ℤ`. Otherwise
 `exists_subset_card_le_card_add_card_sub_one_le_card_add_of_card_symmDiff_le` applies with `min α 1`
 in place of `α`. -/
 lemma exists_fewTranslatesInt : ∃ γ > (0 : ℝ), ∀ α > (0 : ℝ), ∃ c : ℕ, FewTranslatesInt γ α c := by

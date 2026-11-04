@@ -15,23 +15,33 @@ import Mathlib.Tactic.Rify
 # Cleaning up a pair of sets almost all of whose sums are popular
 
 Let `X` and `Y` be finite subsets of an abelian group and let `P` be a set of sums, and suppose that
-all but a `δ` proportion of the pairs `(u, v) ∈ X × Y` satisfy `u + v ∈ P`. This file provides the
+all but a `δ` proportion of the pairs `(u, v)` of `X ×ˢ Y` satisfy `u + v ∈ P`. This file provides
 two ways of passing to large subsets `X₀ ⊆ X` and `Y₀ ⊆ Y` whose whole sumset is close to `P`.
 
-* `LargeSumsetsFromSubsets.Cleanup.exists_subset_card_sdiff_le_card_add_le` is the sharp one and
-  applies when `#(X + Y)` is at most a constant multiple of `min #X #Y`. It removes from `X`, `Y`
-  and `(X + Y) \ P` a few elements so that no sum survives outside `P`, by the arithmetic removal
-  lemma applied inside a translate of `X + Y`, whose doubling is bounded by the Plünnecke–Ruzsa
-  inequality. It is a variant of Shao's almost-all Balog–Szemerédi–Gowers theorem (arXiv:1811.10707,
-  Theorem 1.1), which assumes instead that the sums of the pairs in a set `Γ ⊆ X ×ˢ Y` of density
-  `1 - δ` are few. Here `Γ` is the set of pairs with sum in `P`, and the hypothesis on `#(X + Y)` is
-  an additional one.
-* `LargeSumsetsFromSubsets.Cleanup.exists_subset_card_sdiff_le_card_add_mul_le` is the crude one but
-  has no restriction on `#(X + Y)`. It only gives `#(X₀ + Y₀) ≤ 2 * #P ^ 3 / (#X * #Y)`, but it is
-  elementary: every `z ∈ X₀ + Y₀` has many representations as `p₁ + p₂ - p₃` with `p₁, p₂, p₃ ∈ P`.
+The sharp one applies when `#(X + Y)` is at most a constant multiple of `min #X #Y`. It removes from
+`X`, `Y` and `(X + Y) \ P` a few elements so that no sum survives outside `P`, by the arithmetic
+removal lemma applied inside a translate of `X + Y`, whose doubling is bounded by the
+Plünnecke–Ruzsa inequality. It is a variant of Shao's almost-all Balog–Szemerédi–Gowers theorem
+(arXiv:1811.10707, Theorem 1.1), which assumes instead that the sums of the pairs in a set
+`Γ ⊆ X ×ˢ Y` of density `1 - δ` are few. Here `Γ` is the set of pairs with sum in `P`, and the
+hypothesis on `#(X + Y)` is an additional one.
 
-The form of the sharp cleanup with an unspecified threshold is
-`LargeSumsetsFromSubsets.exists_forall_exists_subset_card_sdiff_le_card_add_le`.
+The crude one has no restriction on `#(X + Y)` and only gives `#(X₀ + Y₀) ≤ 2 * #P ^ 3 / (#X * #Y)`.
+It is elementary: every `z ∈ X₀ + Y₀` has many representations as `p₁ + p₂ - p₃` with
+`p₁, p₂, p₃ ∈ P`.
+
+## Main definitions
+
+* `LargeSumsetsFromSubsets.Cleanup.badPairs X Y P`: the pairs of `X ×ˢ Y` whose sum misses `P`.
+
+## Main statements
+
+* `LargeSumsetsFromSubsets.Cleanup.exists_subset_card_sdiff_le_card_add_le`: the sharp cleanup
+  lemma.
+* `LargeSumsetsFromSubsets.Cleanup.exists_subset_card_sdiff_le_card_add_mul_le`: the crude
+  covering bound.
+* `LargeSumsetsFromSubsets.Cleanup.card_add_add_le`: the Plünnecke–Ruzsa bound for the fourfold
+  sumset `(X + Y) + (X + Y)`.
 -/
 
 @[expose] public section
@@ -127,8 +137,8 @@ private lemma card_add_add_le_mul {X Y : Finset G} (hX : X.Nonempty) (hY : Y.Non
 def badPairs (X Y P : Finset G) : Finset (G × G) := {p ∈ X ×ˢ Y | p.1 + p.2 ∉ P}
 
 /-- A pair is bad when its entries lie in `X` and `Y` and its sum misses `P`. -/
-lemma mem_badPairs {X Y P : Finset G} {p : G × G} :
-    p ∈ badPairs X Y P ↔ p.1 ∈ X ∧ p.2 ∈ Y ∧ p.1 + p.2 ∉ P := by
+lemma mem_badPairs {X Y P : Finset G} {x y : G} :
+    (x, y) ∈ badPairs X Y P ↔ x ∈ X ∧ y ∈ Y ∧ x + y ∉ P := by
   simp [badPairs, and_assoc]
 
 /-- The solutions of `a + b = c` in the translated sets are exactly the bad pairs. -/
@@ -178,9 +188,9 @@ the translate `Z` of `X + Y` by `-(u + v)`, whose doubling is bounded by `card_a
 bad pairs are the solutions of `a + b = c` with `c` in the translate of `(X + Y) \ P`, so the
 arithmetic removal lemma inside `Z` deletes few elements from the three translates and destroys all
 of these solutions. -/
-theorem exists_subset_card_sdiff_le_card_add_le {X Y P : Finset G} (hX : X.Nonempty)
+lemma exists_subset_card_sdiff_le_card_add_le {X Y P : Finset G} (hX : X.Nonempty)
     (hY : Y.Nonempty) {D ρ δ : ℝ} (hD : 1 ≤ D) (hρ : 0 < ρ) (hS : #(X + Y) ≤ D * min (#X : ℝ) #Y)
-    (hδ : 0 ≤ δ) (hδ' : δ ≤ ArithmeticRemoval.removalConst (16 * D ^ 7) (ρ / D))
+    (hδ : 0 ≤ δ) (hδ' : δ ≤ ArithmeticRemoval.removalBound (16 * D ^ 7) (ρ / D))
     (hbad : #(badPairs X Y P) ≤ δ * (#X * #Y)) :
     ∃ X₀ ⊆ X, ∃ Y₀ ⊆ Y, #(X \ X₀) ≤ ρ * min (#X : ℝ) #Y ∧ #(Y \ Y₀) ≤ ρ * min (#X : ℝ) #Y ∧
       #(X₀ + Y₀) ≤ #P + ρ * min (#X : ℝ) #Y := by
@@ -241,7 +251,7 @@ private lemma card_sdiff_filter_le {X : Finset G} {f : G → ℕ} {δ ρ n : ℝ
 /-- The pairs `(x, y) ∈ X ×ˢ Y` such that `u + y`, `x + v` and `x + y` all lie in `P`. Each of them
 gives the representation `u + v = (u + y) + (x + v) - (x + y)`. -/
 private def goodPairs (X Y P : Finset G) (u v : G) : Finset (G × G) :=
-  {q ∈ X ×ˢ Y | u + q.2 ∈ P ∧ q.1 + v ∈ P ∧ q.1 + q.2 ∈ P}
+  (X ×ˢ Y).filter fun (x, y) ↦ u + y ∈ P ∧ x + v ∈ P ∧ x + y ∈ P
 
 /-- The good pairs inject into the representations of `u + v` as `p₁ + p₂ - p₃`. -/
 private lemma card_goodPairs_le (X Y P : Finset G) (u v : G) :
@@ -254,16 +264,18 @@ private lemma card_goodPairs_le (X Y P : Finset G) (u v : G) :
   · rintro ⟨x, y⟩ - ⟨x', y'⟩ - h
     simp_all
 
-/-- A pair of `X ×ˢ Y` that is not good is bad, or has a bad partner of `u` or of `v`. -/
-private lemma card_le_card_goodPairs_add (X Y P : Finset G) (u v : G) :
-    #X * #Y ≤ #(goodPairs X Y P u v) + #X * #{w ∈ Y | u + w ∉ P} + #{w ∈ X | w + v ∉ P} * #Y
-      + #(badPairs X Y P) := by
+/-- A pair of `X ×ˢ Y` that is not good is bad, or has a bad partner of `u` or of `v`, so the pairs
+of `X ×ˢ Y` are covered by the representations of `u + v`, the bad partners and the bad pairs. -/
+private lemma card_mul_le_card_add (X Y P : Finset G) (u v : G) :
+    #X * #Y ≤ #{t ∈ P ×ˢ P ×ˢ P | t.1 + t.2.1 - t.2.2 = u + v} + #X * #{w ∈ Y | u + w ∉ P}
+      + #{w ∈ X | w + v ∉ P} * #Y + #(badPairs X Y P) := by
   have hcover : X ×ˢ Y ⊆ goodPairs X Y P u v ∪ X ×ˢ {w ∈ Y | u + w ∉ P}
       ∪ {w ∈ X | w + v ∉ P} ×ˢ Y ∪ badPairs X Y P := by
     rintro ⟨x, y⟩ hq
     simp only [mem_product] at hq
     simp only [goodPairs, mem_union, mem_filter, mem_product, mem_badPairs, hq]
     tauto
+  grw [← card_goodPairs_le X Y P u v]
   rw [← card_product, ← card_product, ← card_product]
   grw [hcover, card_union_le, card_union_le, card_union_le]
 
@@ -273,12 +285,10 @@ private lemma card_mul_le_two_mul_card {X Y P : Finset G} {u v : G} {δ η : ℝ
     (hη : 8 * η ≤ 1) (hu : #{w ∈ Y | u + w ∉ P} ≤ η * #Y) (hv : #{w ∈ X | w + v ∉ P} ≤ η * #X)
     (hbad : #(badPairs X Y P) ≤ δ * (#X * #Y)) :
     (#X : ℝ) * #Y ≤ 2 * #{t ∈ P ×ˢ P ×ˢ P | t.1 + t.2.1 - t.2.2 = u + v} := by
-  have hgood := card_le_card_goodPairs_add X Y P u v
-  have hrepr := card_goodPairs_le X Y P u v
-  rify at hgood hrepr
-  nlinarith [mul_le_mul_of_nonneg_left hu (by positivity : (0 : ℝ) ≤ #X),
-    mul_le_mul_of_nonneg_right hv (by positivity : (0 : ℝ) ≤ #Y),
-    mul_nonneg (by positivity : (0 : ℝ) ≤ #X) (by positivity : (0 : ℝ) ≤ #Y)]
+  have hcard := card_mul_le_card_add X Y P u v
+  rify at hcard
+  grw [hu, hv, hbad] at hcard
+  nlinarith [(by positivity : (0 : ℝ) ≤ #X * #Y)]
 
 /-- If every element of `S` has at least `m / 2` representations as `p₁ + p₂ - p₃` with
 `p₁, p₂, p₃ ∈ P`, then `#S * m ≤ 2 * #P ^ 3`. -/
@@ -314,25 +324,3 @@ lemma exists_subset_card_sdiff_le_card_add_mul_le {X Y P : Finset G} (hX : X.Non
   exact card_mul_le_two_mul_card (by linarith) hη hu hv hbad
 
 end LargeSumsetsFromSubsets.Cleanup
-
-namespace LargeSumsetsFromSubsets
-
-/-- **Almost all sums in a small set.** For `D ≥ 1` and `ρ > 0` there is `δ > 0` with the following
-property. Let `X` and `Y` be finite nonempty subsets of an abelian group with
-`#(X + Y) ≤ D * min #X #Y`, and let `P` be a finite set. If at most `δ * (#X * #Y)` pairs in
-`X ×ˢ Y` have their sum outside `P`, then one can remove at most `ρ * min #X #Y` elements from each
-of `X` and `Y` so that the sumset of the remaining sets has at most `#P + ρ * min #X #Y`
-elements. -/
-theorem exists_forall_exists_subset_card_sdiff_le_card_add_le {D ρ : ℝ} (hD : 1 ≤ D)
-    (hρ : 0 < ρ) :
-    ∃ δ > (0 : ℝ), ∀ {G : Type*} [AddCommGroup G] [DecidableEq G] {X Y P : Finset G},
-      X.Nonempty → Y.Nonempty → #(X + Y) ≤ D * min (#X : ℝ) #Y →
-      #{p ∈ X ×ˢ Y | p.1 + p.2 ∉ P} ≤ δ * (#X * #Y) →
-      ∃ X₀ ⊆ X, ∃ Y₀ ⊆ Y, #(X \ X₀) ≤ ρ * min (#X : ℝ) #Y ∧ #(Y \ Y₀) ≤ ρ * min (#X : ℝ) #Y ∧
-        #(X₀ + Y₀) ≤ #P + ρ * min (#X : ℝ) #Y := by
-  have hδ := ArithmeticRemoval.removalConst_pos (by positivity : (0 : ℝ) ≤ 16 * D ^ 7)
-    (div_pos hρ (by positivity : (0 : ℝ) < D))
-  exact ⟨_, hδ, fun hX hY hS hbad ↦
-    Cleanup.exists_subset_card_sdiff_le_card_add_le hX hY hD hρ hS hδ.le le_rfl hbad⟩
-
-end LargeSumsetsFromSubsets

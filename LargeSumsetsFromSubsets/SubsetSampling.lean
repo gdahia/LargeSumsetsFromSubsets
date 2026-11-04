@@ -6,9 +6,9 @@ Authors: Gabriel Dahia
 module
 
 public import Mathlib.Algebra.BigOperators.Expect
+public import Mathlib.Algebra.Group.End
 public import Mathlib.Basic.Real.Basic
-public import Mathlib.Data.Fintype.Perm
-public import Mathlib.Data.Set.PowersetCard
+public import Mathlib.Data.Finset.Powerset
 import Mathlib.Algebra.Order.BigOperators.Expect
 import Mathlib.GroupTheory.GroupAction.SubMulAction.Combination
 import Mathlib.Tactic.Linarith.Frontend
@@ -43,7 +43,7 @@ set, of the expectation of `g` over the `j`-subsets of `A`.
   for sumsets of two samples.
 -/
 
-@[expose] public section
+public section
 
 open Finset Equiv Equiv.Perm
 open scoped BigOperators Pointwise
@@ -88,6 +88,12 @@ lemma image_ofSubtype_inv_image_ofSubtype (σ : Perm A) (U : Finset α) :
     (U.image (ofSubtype σ)).image (ofSubtype σ⁻¹) = U := by
   rw [image_image_ofSubtype, inv_mul_cancel, map_one, coe_one, image_id]
 
+/-- A permutation of `A'`, extended by the identity outside `A'`, commutes with intersecting with
+`A'`. -/
+lemma image_ofSubtype_inter {A' : Finset α} (σ : Perm A') (U : Finset α) :
+    (U ∩ A').image (ofSubtype σ) = U.image (ofSubtype σ) ∩ A' := by
+  rw [image_inter _ _ (ofSubtype σ).injective, image_ofSubtype_self]
+
 /-- Two subsets of `A` of the same size are mapped to each other by a permutation of `A`. -/
 lemma exists_image_ofSubtype_eq {U V : Finset α} (hU : U ⊆ A) (hV : V ⊆ A) (h : #U = #V) :
     ∃ τ : Perm A, U.image (ofSubtype τ) = V := by
@@ -98,11 +104,9 @@ lemma exists_image_ofSubtype_eq {U V : Finset α} (hU : U ⊆ A) (hV : V ⊆ A) 
     (Set.powersetCard.ofCard (s := V.subtype (· ∈ A))
       (by simp [card_subtype, filter_true_of_mem hV, h]))
   refine ⟨τ, ?_⟩
-  have := congrArg (fun s ↦ (Subtype.val s : Finset A).map (Function.Embedding.subtype _)) hτ
-  simp only [Set.powersetCard.coe_smul, Set.powersetCard.val_ofCard, subtype_map_of_mem hV]
-    at this
-  rw [← this]
-  conv_lhs => rw [← subtype_map_of_mem hU]
+  have hτUV : τ • U.subtype (· ∈ A) = V.subtype (· ∈ A) := by
+    simpa using congrArg Subtype.val hτ
+  rw [← subtype_map_of_mem hU, ← subtype_map_of_mem hV, ← hτUV]
   simp [smul_finset_def, map_eq_image, image_image, Function.comp_def, Perm.smul_def]
 
 /-! ### Symmetrization -/
@@ -188,13 +192,9 @@ lemma expect_image_le_expect_powersetCard (hg : Monotone g) {m : ℕ} (hm : m �
   rw [expect_eq_expect_expect_powersetCard (fun f : Fin m → A ↦ univ.image fun i ↦ (f i : α))
     (fun f _ ↦ by simp [subset_iff]) (fun σ f i ↦ σ (f i)) (fun _ _ _ ↦ mem_univ _)
     (fun σ f ↦ by simp) (fun σ f _ ↦ by simp [image_image, Function.comp_def])]
-  have : Nonempty (Fin m → A) := by
-    rcases A.eq_empty_or_nonempty with rfl | ⟨a, ha⟩
-    · obtain rfl : m = 0 := by simpa using hm
-      exact ⟨fun i ↦ i.elim0⟩
-    · exact ⟨fun _ ↦ ⟨a, ha⟩⟩
-  rw [← Fintype.expect_const (ι := Fin m → A) (𝔼 S ∈ powersetCard m A, g S)]
-  apply expect_le_expect
+  have : Nonempty (Fin m → A) :=
+    (Function.Embedding.nonempty_of_card_le (by simpa using hm)).map (⇑)
+  apply expect_le univ_nonempty
   intro f _
   exact expect_powersetCard_mono hg (card_image_le.trans (by simp)) hm
 
@@ -216,7 +216,7 @@ lemma expect_card_inter_powersetCard {D : Finset α} (hD : D ⊆ A) {c : ℕ} (h
 
 /-- If a `c`-subset `S` of `A` meets `A'` in fewer than `m` points, where `2 * m ≤ c`, then at least
 `c / 2` points of `S` lie in `A \ A'`. -/
-lemma mul_one_sub_ite_le_two_mul_card_inter_sdiff {A' S : Finset α} {c m : ℕ}
+lemma mul_one_sub_ite_le_two_mul_card_inter_sdiff (A' : Finset α) {S : Finset α} {c m : ℕ}
     (hmc : 2 * m ≤ c) (hS : S ∈ powersetCard c A) :
     (c : ℝ) * (1 - if m ≤ #(S ∩ A') then 1 else 0) ≤ 2 * #(S ∩ (A \ A')) := by
   obtain ⟨hSA, rfl⟩ := mem_powersetCard.1 hS
@@ -237,8 +237,8 @@ lemma one_sub_two_mul_le_expect_ite {A' : Finset α} {μ : ℝ} (hμ₀ : 0 ≤ 
   · obtain rfl : m = 0 := by grind
     simp only [zero_le, ite_true, expect_const hne]
     linarith
-  have h := expect_le_expect fun S hS ↦
-    mul_one_sub_ite_le_two_mul_card_inter_sdiff (A := A) (A' := A') hmc hS
+  have h := expect_le_expect (s := powersetCard c A) fun S hS ↦
+    mul_one_sub_ite_le_two_mul_card_inter_sdiff A' hmc hS
   rw [← mul_expect, expect_sub_distrib, expect_const hne, ← mul_expect,
     expect_card_inter_powersetCard sdiff_subset hc, mul_div_assoc] at h
   grw [div_le_of_le_mul₀ (by positivity) hμ₀ hμ] at h
@@ -254,7 +254,7 @@ lemma mul_expect_powersetCard_le_expect_powersetCard_inter (hg : Monotone g)
   rw [expect_eq_expect_expect_powersetCard (A := A') (fun S ↦ S ∩ A')
     (fun _ _ ↦ inter_subset_right) (fun σ S ↦ S.image (ofSubtype σ))
     (fun σ _ ↦ image_ofSubtype_mem_powersetCard σ hA') image_ofSubtype_inv_image_ofSubtype
-    (fun σ S _ ↦ by rw [image_inter _ _ (ofSubtype σ).injective, image_ofSubtype_self])]
+    (fun σ S _ ↦ (image_ofSubtype_inter σ S).symm)]
   grw [one_sub_two_mul_le_expect_ite hμ₀ hμ hmc hc, expect_mul]
   · apply expect_le_expect
     intro S _
@@ -283,37 +283,26 @@ variable {G : Type*} [DecidableEq G] [AddCommGroup G]
 
 /-- The expected size of the sumset of uniform `c₁`- and `c₂`-subsets of `A` and `B` is at least
 `(1 - 2 * μ) ^ 2` times that of the sets of values of `m₁` and `m₂` independent samples from subsets
-`A'` and `B'` containing all but a `μ` proportion of `A` and `B`, for `2 * m₁ ≤ c₁` and
-`2 * m₂ ≤ c₂`. -/
+`A'` and `B'` containing all but a `μ` proportion of `A` and `B`, for `0 ≤ μ ≤ 1 / 2`,
+`2 * m₁ ≤ c₁` and `2 * m₂ ≤ c₂`. -/
 lemma mul_expect_card_add_le_expect_powersetCard {A A' B B' : Finset G} (hA' : A' ⊆ A)
-    (hB' : B' ⊆ B) {μ : ℝ} (hμ : μ ≤ 1 / 2) (hAA' : #(A \ A') ≤ μ * #A)
+    (hB' : B' ⊆ B) {μ : ℝ} (hμ₀ : 0 ≤ μ) (hμ : μ ≤ 1 / 2) (hAA' : #(A \ A') ≤ μ * #A)
     (hBB' : #(B \ B') ≤ μ * #B) {c₁ c₂ m₁ m₂ : ℕ} (hmc₁ : 2 * m₁ ≤ c₁) (hc₁ : c₁ ≤ #A)
     (hmc₂ : 2 * m₂ ≤ c₂) (hc₂ : c₂ ≤ #B) (hm₁ : m₁ ≤ #A') (hm₂ : m₂ ≤ #B') :
-    (1 - 2 * μ) ^ 2 * 𝔼 fg : (Fin m₁ → A') × (Fin m₂ → B'),
-        (#(univ.image (fun i ↦ (fg.1 i : G)) + univ.image (fun i ↦ (fg.2 i : G))) : ℝ) ≤
+    (1 - 2 * μ) ^ 2 * 𝔼 f : Fin m₁ → A', 𝔼 g : Fin m₂ → B',
+        (#(univ.image (fun i ↦ (f i : G)) + univ.image (fun i ↦ (g i : G))) : ℝ) ≤
       𝔼 S ∈ powersetCard c₁ A, 𝔼 T ∈ powersetCard c₂ B, (#(S + T) : ℝ) := by
-  obtain hμ₀ | hμ₀ := lt_or_ge μ 0
-  · obtain rfl : A = ∅ := by
-      rw [← card_eq_zero, ← Nat.cast_eq_zero (R := ℝ)]
-      nlinarith [(Nat.cast_nonneg _ : (0 : ℝ) ≤ #(A \ A')), (Nat.cast_nonneg _ : (0 : ℝ) ≤ #A)]
-    obtain rfl : A' = ∅ := subset_empty.1 hA'
-    obtain rfl : m₁ = 0 := by simpa using hm₁
-    obtain rfl : c₁ = 0 := by simpa using hc₁
-    simp
-  rw [← univ_product_univ, expect_product, pow_two, mul_assoc, mul_expect]
-  grw [expect_le_expect (g := fun f ↦ 𝔼 T ∈ powersetCard c₂ B,
-    (#((univ.image fun i ↦ (f i : G)) + T) : ℝ)) ?_]
-  · rw [expect_comm, mul_expect, expect_comm (powersetCard c₁ A) (powersetCard c₂ B)]
-    apply expect_le_expect
+  rw [pow_two, mul_assoc, mul_expect]
+  grw [expect_le_expect fun (f : Fin m₁ → A') _ ↦ mul_expect_image_le_expect_powersetCard
+      (g := fun T ↦ (#((univ.image fun i ↦ (f i : G)) + T) : ℝ))
+      (fun _ _ h ↦ Nat.cast_le.2 (card_le_card (add_subset_add_left h))) (fun _ ↦ by positivity)
+      hB' hμ₀ hμ hBB' hmc₂ hc₂ hm₂,
+    expect_comm, mul_expect, expect_comm (powersetCard c₁ A)]
+  · apply expect_le_expect
     intro T _
     exact mul_expect_image_le_expect_powersetCard (g := fun S ↦ (#(S + T) : ℝ))
       (fun _ _ h ↦ Nat.cast_le.2 (card_le_card (add_subset_add_right h))) (fun _ ↦ by positivity)
       hA' hμ₀ hμ hAA' hmc₁ hc₁ hm₁
   · linarith
-  · intro f _
-    exact mul_expect_image_le_expect_powersetCard
-      (g := fun T ↦ (#((univ.image fun i ↦ (f i : G)) + T) : ℝ))
-      (fun _ _ h ↦ Nat.cast_le.2 (card_le_card (add_subset_add_left h))) (fun _ ↦ by positivity)
-      hB' hμ₀ hμ hBB' hmc₂ hc₂ hm₂
 
 end LargeSumsetsFromSubsets
