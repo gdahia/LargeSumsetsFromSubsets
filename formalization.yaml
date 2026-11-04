@@ -13,9 +13,10 @@ project:
     doubling, deduced from Mathlib's triangle removal lemma, in place of Shao's almost-all
     Balog–Szemerédi–Gowers theorem. Theorem 1: for A, B ⊆ Z_p with α|B| ≤ |A| ≤ α⁻¹|B| and
     |A| + |B| ≤ (1 - β)p, and c₁c₂ ≥ c(α, β) max(|A|, |B|), there are A' ⊆ A and B' ⊆ B with c₁
-    and c₂ elements and |A' + B'| ≥ |A| + |B| - 1. Theorems 1, 6 and 8 are proved assuming
-    Theorems 4 and 5 of the paper, which it quotes from Grynkiewicz and from the authors' Large
-    sumsets from small subsets; these two theorems are not formalized.
+    and c₂ elements and |A' + B'| ≥ |A| + |B| - 1. Theorems 4 and 5 of the paper, which it
+    quotes from the authors' Large sumsets from small subsets, come from the formalization
+    LargeSumsetsFromSmallSubsets, which proves Theorem 5 in a weaker form; the proof of Theorem 8
+    is adapted to that form.
   authors:
     - "Gabriel Dahia"
   license: "Apache-2.0"
@@ -38,8 +39,8 @@ sources:
     relationship: "formalizes"
     note: >-
       Theorems 1, 2, 6 and 8, Lemmas 9, 10 and 12 and Corollary 11. Theorem 2 is proved
-      without Theorem 3 (Shao). Theorems 1, 6 and 8 assume Theorems 4 and 5, which are not
-      formalized. See fidelity.divergences.
+      without Theorem 3 (Shao). Theorems 4 and 5 are imported from LargeSumsetsFromSmallSubsets,
+      Theorem 5 in a weaker form. See fidelity.divergences.
     license: "unknown"
     author_endorsement: "not-contacted"
   - title: "Large sumsets from small subsets"
@@ -52,8 +53,9 @@ sources:
     location: "https://arxiv.org/abs/2204.07559v2"
     relationship: "background"
     note: >-
-      Theorem 31 is Theorem 5 of the formalized paper. It is the hypothesis
-      FewTranslatesNearIntervals of Theorems 1 and 8 and is not proved here.
+      Corollary 24 is Theorem 4 of the formalized paper, and Theorem 31 is its Theorem 5. Both
+      are used through the formalization LargeSumsetsFromSmallSubsets, Theorem 31 in the form
+      where the subsets of B depend on the set A.
     license: "unknown"
     author_endorsement: "not-contacted"
   - title: "Structural additive theory"
@@ -64,8 +66,8 @@ sources:
     relationship: "background"
     note: >-
       Developments in Mathematics 30, Springer, 2013. The formalized paper deduces its
-      Theorem 4 from Theorem 21.8 of the book. Theorem 4 is the hypothesis
-      CauchyDavenportStability of Theorems 1 and 6 and is not proved here.
+      Theorem 4 from Theorem 21.8 of the book. Here Theorem 4 is Corollary 24 of Large sumsets
+      from small subsets, as proved in LargeSumsetsFromSmallSubsets.
   - title: "On an almost all version of the Balog–Szemerédi–Gowers theorem"
     authors:
       - "Xuancheng Shao"
@@ -111,13 +113,18 @@ related_formalizations:
       symmetric differences, Finset.expect and Finset.powersetCard. The proofs use the triangle
       removal lemma, the Plünnecke–Ruzsa inequality and the Cauchy–Davenport theorem in ZMod p
       and in ℤ. Mathlib has none of the results of the paper.
+  - id: "https://github.com/gdahia/LargeSumsetsFromSmallSubsets"
+    relationship: "builds-on"
+    note: >-
+      A Lake dependency. Its Corollary 24 gives Theorem 4 of the paper, used for Theorems 1
+      and 6. Its form of Theorem 31, with the subsets of B depending on A, gives the form of
+      Theorem 5 used for Theorem 8.
 
 status:
   scope: >-
     Theorems 1, 2, 6 and 8 of the paper, Lemmas 9 and 10, Corollary 11, Lemma 12 for one point,
-    and Theorem 8 for intervals of integers. Theorems 1, 6 and 8 take Theorem 4, quoted from
-    Grynkiewicz, and Theorem 5, Theorem 31 of arXiv:2204.07559v2, as the hypotheses
-    CauchyDavenportStability and FewTranslatesNearIntervals; these are not formalized. Theorem
+    and Theorem 8 for intervals of integers. Theorem 4 and a weaker form of Theorem 5, with the
+    subsets of B depending on A, come from the dependency LargeSumsetsFromSmallSubsets. Theorem
     3 of the paper (Shao) is not used. The library also proves the arithmetic removal lemma for
     subsets of a set of small doubling and the cleanup theorem, which replace Shao's theorem in
     the proof of Theorem 2. The sorry counts refer to the library and Solution.lean;
@@ -156,23 +163,35 @@ automation:
         A first instruction to assemble the repository with Theorem 2 and the Palomar layout.
         A second instruction to make the repository a formalization of the paper with the
         removal proof of Theorem 2, to formalize its other main results, to remove Theorem 1.1
-        of Fox, Luo, Pham and Zhou, and to follow the author's Palomar conventions.
+        of Fox, Luo, Pham and Zhou, and to follow the author's Palomar conventions. Later, one
+        instruction to replace the hypotheses for Theorems 4 and 5 by the results of
+        LargeSumsetsFromSmallSubsets, adapting the proof of Theorem 8 to the weaker form of
+        Theorem 5 proved there, and to write a note on the adapted proof. Later, one instruction
+        to check the style against the author's conventions and adjust it. Later, one instruction
+        to restyle every module, including the main statements.
   spend_usd: "not tracked"
   notes: >-
     The first proofs of Theorem 2, the arithmetic removal lemma and the cleanup theorem were
     written by Codex agents directed by Gabriel Dahia. Claude Code, directed by Gabriel Dahia,
     restyled them, wrote the statements and proofs of Theorems 1, 6 and 8 and of the lemmas of
     Section 4 of the paper, and wrote Challenge.lean, Solution.lean, the README and this file.
+    Later, the agent removed the hypotheses CauchyDavenportStability and
+    FewTranslatesNearIntervals, deduced Theorems 4 and 5 from LargeSumsetsFromSmallSubsets,
+    adapted the sample of Y in the proof of Theorem 8, and wrote simplified_proof.tex. Later,
+    the agent restyled the changed modules and rewrote the docstrings without LaTeX. Later, the
+    agent restyled every module and dropped the redundant casts from the main statements.
     Every proof is checked by Lean.
 
 fidelity:
   divergences: >-
-    Theorems 4 and 5 are hypotheses. CauchyDavenportStability states Theorem 4 with the
-    progressions P and Q containing A and B, as in the paper. FewTranslatesNearIntervals states
-    Theorem 5 with a finite indexed family F₀, …, F_k of sets with at most c elements, in place
-    of a family of c-subsets, and with the bound |A| + |B| - 1 of the paper's conclusion
-    |A| + |J| - 1 ≥ |A| + |B| - 1; both changes weaken the hypothesis. The expectation over
-    the family is written as (k + 1)(|A| + |B| - 1) ≤ Σᵢ |A + Fᵢ| in the natural numbers.
+    Theorem 4 is stated as in the paper, with the progressions P and Q containing A and B. The
+    form of Theorem 5 used is weaker than the paper's: for each set A close to the interval I
+    there is one subset F ⊆ B with at most c elements and |A + F| ≥ |A| + |B| - 1, where the
+    paper has one family of c-subsets of B that works for every such A on average. It is stated
+    for intervals of integers. The proof of Theorem 8 is adapted: for each sampled class x of X
+    and each dense class y of Y, the subset given for the class x is added to the sample of Y.
+    With the largest class of X and t random classes, the sample of Y is t + 1 times larger, and
+    the constant c of Theorem 8 changes accordingly.
 
     Theorem 2. The paper takes any real K; the Lean statement requires σ > 0 in its place. The
     hypothesis is c₁c₂ > c max(|A|, |B|) and the three conclusions are strict inequalities,
@@ -223,38 +242,38 @@ alignment:
   statements:
     - source: "Theorem 1"
       lean: "LargeSumsetsFromSubsets.exists_subset_card_eq_card_add_card_sub_one_le_card_add'"
-      module: "Challenge"
+      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
-      note: "Assuming CauchyDavenportStability and FewTranslatesNearIntervals."
     - source: "Theorem 2"
       lean: "LargeSumsetsFromSubsets.exists_forall_exists_subset_min_lt_expect_card_add'"
-      module: "Challenge"
+      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
       note: >-
         Library form with the explicit constant originalBltConstant σ ε:
         exists_subset_min_lt_expect_card_add in LargeSumsetsFromSubsets.MediumSizedSubsets.
     - source: "Theorem 6"
       lean: "LargeSumsetsFromSubsets.exists_arithProg_card_symmDiff_le_of_expect_card_add_le'"
-      module: "Challenge"
+      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
-      note: "Assuming CauchyDavenportStability."
     - source: "Theorem 8"
       lean: "LargeSumsetsFromSubsets.exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_image_range'"
-      module: "Challenge"
+      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
       note: >-
-        Assuming FewTranslatesNearIntervals. For intervals of integers:
+        For intervals of integers:
         exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_Ico.
-    - source: "Theorem 4"
-      lean: "LargeSumsetsFromSubsets.CauchyDavenportStability"
-      module: "Challenge"
-      status: "stated"
-      note: "A hypothesis of Theorems 1 and 6; not proved."
+    - source: "Theorem 4 (Corollary 24 of arXiv:2204.07559v2)"
+      lean: "LargeSumsetsFromSubsets.exists_subset_arithProg_card_sdiff_le_of_card_add_le"
+      module: "LargeSumsetsFromSubsets.ZModStability"
+      status: "proved"
+      note: "From Corollary 24 as proved in LargeSumsetsFromSmallSubsets."
     - source: "Theorem 5 (Theorem 31 of arXiv:2204.07559v2)"
-      lean: "LargeSumsetsFromSubsets.FewTranslatesNearIntervals"
-      module: "Challenge"
-      status: "stated"
-      note: "A hypothesis of Theorems 1 and 8; not proved."
+      lean: "LargeSumsetsFromSubsets.exists_fewTranslatesInt"
+      module: "LargeSumsetsFromSubsets.IntervalSumsets.FewTranslates"
+      status: "partial"
+      note: >-
+        A weaker form for intervals of integers, with the subset of B depending on A, from the
+        form of Theorem 31 proved in LargeSumsetsFromSmallSubsets. See fidelity.divergences.
     - source: "Lemma 9"
       lean: "LargeSumsetsFromSubsets.exists_interval_ends"
       module: "LargeSumsetsFromSubsets.IntervalEnds"
@@ -275,14 +294,14 @@ alignment:
       note: "For one point of I₀."
     - source: "Shao, Corollary 2.5 (arithmetic removal in a set of small doubling)"
       lean: "LargeSumsetsFromSubsets.exists_forall_exists_subset_card_sdiff_le_forall_add_ne'"
-      module: "Challenge"
+      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
       note: >-
         Library form with the threshold removalConst:
         ArithmeticRemoval.exists_subset_card_sdiff_le_forall_add_ne.
     - source: "Shao, Theorem 1.1 (variant)"
       lean: "LargeSumsetsFromSubsets.exists_forall_exists_subset_card_sdiff_le_card_add_le'"
-      module: "Challenge"
+      module: "LargeSumsetsFromSubsetsPalomar.Challenge"
       status: "proved"
       note: >-
         Assumes that the full sumset is small. Library form:

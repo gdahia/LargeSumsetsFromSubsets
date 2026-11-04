@@ -5,16 +5,33 @@ Authors: Gabriel Dahia
 -/
 module
 
+public import LargeSumsetsFromSmallSubsets.NearCauchyDavenport.Progression
 public import Mathlib.Data.ZMod.Basic
 
 /-!
 # Arithmetic progressions
 
-The arithmetic progression `arithProg a d n = {a, a + d, …, a + (n - 1) • d}` in an additive
-monoid. In `ZMod p` the progressions of common difference `1` are the intervals. This file proves
-the facts about intervals of `ZMod p` used in the proof of Theorem 1 of Bollobás, Leader and Tiba:
-their sizes, membership through `ZMod.val`, and their behaviour under translation and under
-multiplication by a unit.
+The arithmetic progression `arithProg a d n = {a, a + d, …, a + (n - 1) • d}` in an additive monoid.
+In a commutative ring it is the progression of the same name in `LargeSumsetsFromSmallSubsets`. In
+`ZMod p` the progressions of common difference `1` are the intervals. This file proves the facts
+about intervals of `ZMod p` used in the proof of Theorem 1 of Bollobás, Leader and Tiba: their
+sizes, membership through `ZMod.val`, and their behavior under translation and under multiplication
+by a unit.
+
+## Main definitions
+
+* `arithProg a d n`: the arithmetic progression `{a, a + d, …, a + (n - 1) • d}`.
+
+## Main statements
+
+* `nearCauchyDavenport_arithProg_eq`: `arithProg` agrees with the progressions of
+  `LargeSumsetsFromSmallSubsets`.
+* `mem_arithProg_one_iff`: `x ∈ arithProg a 1 n ↔ (x - a).val < n` in `ZMod p`, for `n ≤ p`.
+* `card_arithProg_one`: an interval of `ZMod p` of length `n ≤ p` has `n` elements.
+* `image_add_arithProg`, `image_mul_arithProg`: translates and multiples of arithmetic progressions
+  are arithmetic progressions.
+* `ne_zero_of_two_le_card_of_subset_arithProg`: a set with at least two elements does not lie in a
+  progression of common difference zero.
 -/
 
 @[expose] public section
@@ -49,23 +66,27 @@ lemma arithProg_mono (a d : G) {m n : ℕ} (h : m ≤ n) : arithProg a d m ⊆ a
 
 lemma arithProg_add (a d : G) (m n : ℕ) :
     arithProg a d (m + n) = arithProg a d m ∪ arithProg (a + m • d) d n := by
-  ext x
-  simp only [mem_union, mem_arithProg]
-  constructor
-  · rintro ⟨i, hi, rfl⟩
-    by_cases him : i < m
-    · exact Or.inl ⟨i, him, rfl⟩
-    · refine Or.inr ⟨i - m, by grind, ?_⟩
-      rw [add_assoc, ← add_nsmul, Nat.add_sub_cancel' (by grind)]
-  · rintro (⟨i, hi, rfl⟩ | ⟨i, hi, rfl⟩)
-    · exact ⟨i, by grind, rfl⟩
-    · exact ⟨m + i, by grind, by rw [add_nsmul, add_assoc]⟩
+  simp [arithProg, range_add_eq_union, image_union, map_eq_image, image_image, Function.comp_def,
+    add_nsmul, add_assoc]
 
 lemma image_add_arithProg (t a d : G) (n : ℕ) :
     (arithProg a d n).image (t + ·) = arithProg (t + a) d n := by
   simp [arithProg, image_image, Function.comp_def, add_assoc]
 
+/-- A set with at least two elements does not lie in a progression of common difference zero. -/
+lemma ne_zero_of_two_le_card_of_subset_arithProg {s : Finset G} {a d : G} {m : ℕ} (hs : 2 ≤ #s)
+    (h : s ⊆ arithProg a d m) : d ≠ 0 := by
+  rintro rfl
+  grind [card_le_card (h.trans (by simp [arithProg, subset_iff] : arithProg a 0 m ⊆ {a})),
+    card_singleton]
+
 end AddCommMonoid
+
+/-- In a commutative ring, the progressions of *Large sumsets from small subsets*, written with
+`i * d`, are the progressions `arithProg a d n`. -/
+lemma nearCauchyDavenport_arithProg_eq {R : Type*} [CommRing R] [DecidableEq R] (a d : R) (n : ℕ) :
+    LargeSumsetsFromSmallSubsets.NearCauchyDavenport.arithProg a d n = arithProg a d n := by
+  simp [LargeSumsetsFromSmallSubsets.NearCauchyDavenport.arithProg, arithProg]
 
 section ZMod
 
@@ -77,10 +98,9 @@ lemma mem_arithProg_one_iff [NeZero p] {a x : ZMod p} {n : ℕ} (hn : n ≤ p) :
   rw [mem_arithProg]
   constructor
   · rintro ⟨i, hi, rfl⟩
-    rw [add_sub_cancel_left, nsmul_one, ZMod.val_natCast_of_lt (by grind)]
-    exact hi
+    rwa [add_sub_cancel_left, nsmul_one, ZMod.val_natCast_of_lt (by grind)]
   · intro h
-    exact ⟨(x - a).val, h, by rw [nsmul_one, ZMod.natCast_zmod_val, add_sub_cancel]⟩
+    exact ⟨(x - a).val, h, by simp⟩
 
 /-- An interval of `ZMod p` is the image of `range n` under `i ↦ a + i`. -/
 lemma arithProg_one_eq_image_range (a : ZMod p) (n : ℕ) :

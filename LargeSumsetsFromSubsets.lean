@@ -10,7 +10,7 @@ public import LargeSumsetsFromSubsets.IntervalCovering
 public import LargeSumsetsFromSubsets.IntervalEnds
 public import LargeSumsetsFromSubsets.IntervalSumsets
 public import LargeSumsetsFromSubsets.IntervalSumsets.FewTranslates
-public import LargeSumsetsFromSubsets.IntervalSumsets.Fibres
+public import LargeSumsetsFromSubsets.IntervalSumsets.Fibers
 public import LargeSumsetsFromSubsets.IntervalSumsets.Sampling
 public import LargeSumsetsFromSubsets.MediumSizedSubsets
 public import LargeSumsetsFromSubsets.MediumSizedSubsets.Constants

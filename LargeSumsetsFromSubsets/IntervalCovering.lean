@@ -6,7 +6,6 @@ Authors: Gabriel Dahia
 module
 
 public import LargeSumsetsFromSubsets.ArithmeticProgression
-public import Mathlib.Algebra.Group.Pointwise.Finset.Basic
 import Mathlib.Tactic.Ring.RingNF
 
 /-!
@@ -18,6 +17,12 @@ consecutive blocks `arithProg (v + i * l) 1 l`, `i < n / l`. If `x` lies at dist
 beyond both ends of `I`, then some block `J'` satisfies `(x + J') ∩ (I + J) = ∅`, as long as
 `2 * l ≤ n` and `2 * l ≤ L`. Indeed `x + J` meets `I + J` only in an initial and a final segment,
 and the points in between form an interval of at least `min n L` points.
+
+## Main statements
+
+* `LargeSumsetsFromSubsets.arithProg_add_arithProg`: the sumset of two progressions with the same
+  common difference.
+* `LargeSumsetsFromSubsets.exists_lt_disjoint_image_add_arithProg`: Lemma 12, for one point.
 -/
 
 @[expose] public section
@@ -57,8 +62,8 @@ end AddCommMonoid
 
 /-- A point `u + w`, with `w < p`, at distance at least `L` beyond both ends of the interval
 `arithProg u 1 m` satisfies `m + L ≤ w` and `w + L < p`. -/
-private lemma le_and_lt_of_add_notMem_arithProg {p : ℕ} [NeZero p] {u : ZMod p} {w m L : ℕ}
-    (hwp : w < p) (hx : u + w ∉ arithProg (u - L) 1 (m + 2 * L)) : m + L ≤ w ∧ w + L < p := by
+private lemma le_and_lt_of_add_notMem_arithProg {p : ℕ} {u : ZMod p} {w m L : ℕ} (hwp : w < p)
+    (hx : u + w ∉ arithProg (u - L) 1 (m + 2 * L)) : m + L ≤ w ∧ w + L < p := by
   refine ⟨?_, ?_⟩ <;> by_contra! h
   · exact hx (mem_arithProg.2 ⟨w + L, by grind, by simp⟩)
   · exact hx (mem_arithProg.2 ⟨w + L - p, by grind, by simp [Nat.cast_sub h]⟩)
@@ -66,24 +71,27 @@ private lemma le_and_lt_of_add_notMem_arithProg {p : ℕ} [NeZero p] {u : ZMod p
 /-- **Lemma 12** of Bollobás, Leader and Tiba, for one point. If `x` is not within `L` of the
 interval `I = arithProg u 1 m`, some block `arithProg (v + i * l) 1 l`, `i < n / l`, of
 `J = arithProg v 1 n` has its translate by `x` disjoint from `I + J`. -/
-lemma exists_lt_disjoint_image_add_arithProg {p : ℕ} [NeZero p] {u v x : ZMod p}
-    {m n L l : ℕ} (hmnL : m + n + L ≤ p) (hl : 1 ≤ l) (hln : 2 * l ≤ n) (hlL : 2 * l ≤ L)
+lemma exists_lt_disjoint_image_add_arithProg {p : ℕ} [NeZero p] {u v x : ZMod p} {m n L l : ℕ}
+    (hmnL : m + n + L ≤ p) (hl : 1 ≤ l) (hln : 2 * l ≤ n) (hlL : 2 * l ≤ L)
     (hx : x ∉ arithProg (u - L) 1 (m + 2 * L)) :
     ∃ i < n / l, Disjoint ((arithProg (v + (i * l : ℕ)) 1 l).image (x + ·))
       (arithProg u 1 m + arithProg v 1 n) := by
   obtain ⟨w, hwp, rfl⟩ : ∃ w < p, x = u + w := ⟨(x - u).val, ZMod.val_lt _, by simp⟩
   obtain ⟨hmw, hwL⟩ := le_and_lt_of_add_notMem_arithProg hwp hx
-  obtain ⟨a, ha⟩ : ∃ a, a = m + n - 1 - w := ⟨_, rfl⟩
-  have hal := Nat.lt_div_mul_add (a := a) hl
-  have hla := Nat.div_mul_le_self a l
-  refine ⟨a / l + 1, (Nat.le_div_iff_mul_le hl).2 (by grind), ?_⟩
+  generalize ha : m + n - 1 - w = a
+  refine ⟨a / l + 1, (Nat.le_div_iff_mul_le hl).2 (by grind [Nat.div_mul_le_self a l]), ?_⟩
   rw [disjoint_left]
   intro z hz hzIJ
   obtain ⟨_, hy, rfl⟩ := mem_image.1 hz
   obtain ⟨k, hk, rfl⟩ := mem_arithProg.1 hy
-  have := (mem_arithProg_one_iff (by grind)).1 (add_arithProg_subset u v 1 m n hzIJ)
-  rw [(by simp; ring : u + w + (v + ((a / l + 1) * l : ℕ) + k • 1) - (u + v) =
-    ((w + (a / l + 1) * l + k : ℕ) : ZMod p)), ZMod.val_natCast_of_lt (by grind)] at this
-  grind
+  have hval : (u + w + (v + ((a / l + 1) * l : ℕ) + k • 1) - (u + v)).val =
+      w + (a / l + 1) * l + k := by
+    rw [← ZMod.val_natCast_of_lt (by grind [Nat.div_mul_le_self a l] :
+      w + (a / l + 1) * l + k < p)]
+    congr 1
+    push_cast
+    ring
+  grind [(mem_arithProg_one_iff (by grind)).1 (add_arithProg_subset u v 1 m n hzIJ),
+    Nat.lt_div_mul_add (a := a) hl]
 
 end LargeSumsetsFromSubsets

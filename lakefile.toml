@@ -1,7 +1,7 @@
 name = "LargeSumsetsFromSubsets"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["LargeSumsetsFromSubsets", "Challenge", "Solution"]
+defaultTargets = ["LargeSumsetsFromSubsets", "Solution"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -14,16 +14,24 @@ name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.35.0"
 
+# Proves Corollary 24 and a form of Theorem 31 of Bollobás, Leader and Tiba, *Large sumsets from
+# small subsets*, which replace Theorems 4 and 5 of *Large sumsets from medium-sized subsets*.
+[[require]]
+name = "LargeSumsetsFromSmallSubsets"
+git = "https://github.com/gdahia/LargeSumsetsFromSmallSubsets"
+rev = "34a01bd2efb6a2c6000b8d6c2edf45e3cd6427bb"
+
 # The full proof development; `Solution.lean` imports it.
 [[lean_lib]]
 name = "LargeSumsetsFromSubsets"
 
-# The small statement-only surface a reader audits.
+# The statement-only surface a reader audits. Not a default target, so that `lake build` does not
+# build its `sorry`s; the comparator job builds it by name.
 [[lean_lib]]
 name = "Challenge"
-roots = ["Challenge"]
+roots = ["LargeSumsetsFromSubsetsPalomar.Challenge"]
 
 # Proves the declarations stated in `Challenge.lean`; Comparator checks the two agree.
 [[lean_lib]]
 name = "Solution"
-roots = ["Solution"]
+roots = ["LargeSumsetsFromSubsetsPalomar.Solution"]

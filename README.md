@@ -9,10 +9,14 @@ Cauchy–Davenport bound $|A| + |B| - 1$ as soon as $c_1 c_2 \ge c \max(|A|, |B|
 
 Theorem 2 is proved without the theorem of Shao that the paper uses. The proof instead applies
 the arithmetic removal lemma to the sets of a minimizing pair of subsets, and both the removal
-lemma and the cleanup theorem it gives are proved here. Theorems 1, 6 and 8 are proved from
-Theorems 4 and 5 of the paper, which the paper quotes from other works. These two theorems are
-not formalized: they are the hypotheses `CauchyDavenportStability` and
-`FewTranslatesNearIntervals` of the statements.
+lemma and the cleanup theorem it gives are proved here. The paper quotes its Theorems 4 and 5,
+used for Theorems 1, 6 and 8, from other works. They come from the Lean formalization
+[LargeSumsetsFromSmallSubsets](https://github.com/gdahia/LargeSumsetsFromSmallSubsets) of
+Bollobás, Leader and Tiba, [*Large sumsets from small subsets*](https://arxiv.org/abs/2204.07559),
+a dependency of this project. Theorem 4 is Corollary 24 there. Theorem 5 is Theorem 31 there,
+which that formalization proves in a weaker form: the subsets of $B$ may depend on the set $A$.
+The proof of Theorem 8 is adapted to this form, as explained in
+[simplified_proof.pdf](simplified_proof.pdf).
 
 ## Results
 
@@ -21,8 +25,8 @@ prime $p$. All names below are in the namespace `LargeSumsetsFromSubsets`.
 
 Theorem numbers are those of the paper.
 
-**Theorem 1** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add`, assuming Theorems 4
-and 5). For $\alpha, \beta > 0$ there is $c > 0$ such that if
+**Theorem 1** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add`). For
+$\alpha, \beta > 0$ there is $c > 0$ such that if
 $A, B \subseteq \mathbb{Z}_p$ are nonempty with $\alpha |B| \le |A| \le \alpha^{-1} |B|$ and
 $|A| + |B| \le (1 - \beta) p$, then for all integers $1 \le c_1 \le |A|$ and $1 \le c_2 \le |B|$
 with $c_1 c_2 \ge c \max(|A|, |B|)$ there are $A' \subseteq A$ and $B' \subseteq B$ with
@@ -39,8 +43,9 @@ points of $A_0$ and $B_0$ chosen independently and uniformly at random,
 
 $$\mathbb{E} |A' + B'| > \min\bigl((1 - \varepsilon) |A_0 + B_0|, \sigma |A_0|, \sigma |B_0|\bigr).$$
 
-**Theorem 6** (`exists_arithProg_card_symmDiff_le_of_expect_card_add_le`, assuming Theorem 4). For $\beta, \gamma > 0$ there is $\varepsilon > 0$ such that for $\alpha > 0$
-there is $c$ with the following property. If $A, B \subseteq \mathbb{Z}_p$ have at least two
+**Theorem 6** (`exists_arithProg_card_symmDiff_le_of_expect_card_add_le`). For
+$\beta, \gamma > 0$ there is $\varepsilon > 0$ such that for $\alpha > 0$ there is $c$ with the
+following property. If $A, B \subseteq \mathbb{Z}_p$ have at least two
 elements, $\alpha |B| \le |A| \le \alpha^{-1} |B|$, $|A| + |B| \le (1 - \beta) p$,
 $1 \le c_1 \le |A|$, $1 \le c_2 \le |B|$, $c_1 c_2 \ge c \max(|A|, |B|)$, and uniformly random
 subsets $A'$ and $B'$ of $A$ and $B$ with $c_1$ and $c_2$ elements satisfy
@@ -50,9 +55,8 @@ $$\mathbb{E} |A' + B'| \le |A| + |B| - 1 + \varepsilon \min(|A|, |B|),$$
 then there are arithmetic progressions $P$ and $Q$ with the same nonzero common difference and
 $|A \mathbin{\triangle} P|, |B \mathbin{\triangle} Q| \le \gamma \min(|A|, |B|)$.
 
-**Theorem 8** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_image_range`,
-assuming Theorem 5). There is $\gamma > 0$ such that for $\alpha > 0$ there is $c$ with the following
-property. Let $X \subseteq I$ and $Y \subseteq J$, where $I$ and $J$ are intervals of
+**Theorem 8** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_image_range`).
+There is $\gamma > 0$ such that for $\alpha > 0$ there is $c$ with the following property. Let $X \subseteq I$ and $Y \subseteq J$, where $I$ and $J$ are intervals of
 $\mathbb{Z}_p$ with $m$ and $n$ elements, $m + n \le p$, $\alpha n \le m \le \alpha^{-1} n$ and
 $|I \setminus X|, |J \setminus Y| \le \gamma \min(m, n)$. For $1 \le c_1 \le |X|$ and
 $1 \le c_2 \le |Y|$ with $c_1 c_2 \ge c \max(|X|, |Y|)$ there are $X' \subseteq X$ and
@@ -71,30 +75,11 @@ outside a set $P$, then one can remove at most $\rho \min(|X|, |Y|)$ elements fr
 $Y$ so that the remaining sets $X_0$ and $Y_0$ satisfy
 $|X_0 + Y_0| \le |P| + \rho \min(|X|, |Y|)$.
 
-The hypotheses of Theorems 1, 6 and 8 are the following statements, quoted in the paper.
-
-- `CauchyDavenportStability` is Theorem 4 of the paper, which the authors deduce from Theorem 21.8
-  of Grynkiewicz, *Structural additive theory*. For $\beta, \gamma > 0$ there is $\varepsilon > 0$
-  such that if $A, B \subseteq \mathbb{Z}_p$ have at least two elements,
-  $|A| + |B| \le (1 - \beta) p$ and $|A + B| \le |A| + |B| - 1 + \varepsilon \min(|A|, |B|)$, then
-  $A$ and $B$ lie in arithmetic progressions $P$ and $Q$ with the same common difference and
-  $|P \setminus A|, |Q \setminus B| \le \gamma \min(|A|, |B|)$.
-- `FewTranslatesNearIntervals` is Theorem 5 of the paper, Theorem 31 of Bollobás, Leader and
-  Tiba, [*Large sumsets from small subsets*](https://arxiv.org/abs/2204.07559). For $\beta > 0$
-  there is $\gamma > 0$ such that for $\alpha > 0$ there is $c$ with the following property. If
-  $I$ and $J$ are intervals of $\mathbb{Z}_p$ with $m$ and $n$ elements,
-  $\alpha n \le m \le \alpha^{-1} n$, $m + n \le (1 - \beta) p$, and $B \subseteq J$ contains the
-  endpoints of $J$ and misses at most $\gamma \min(m, n)$ of its points, then there are sets
-  $F_0, \dots, F_k \subseteq B$ with at most $c$ elements such that every $A$ with
-  $|A \mathbin{\triangle} I| \le \gamma \min(m, n)$ satisfies
-  $|A| + |B| - 1 \le \mathbb{E}_i |A + F_i|$. The definition states this inequality as
-  $(k + 1)(|A| + |B| - 1) \le \sum_i |A + F_i|$ in $\mathbb{N}$.
-
-[Challenge.lean](Challenge.lean) states these six results under the library names with a prime, with
-`sorry` placeholders, in terms of Mathlib and of the definitions `CauchyDavenportStability` and
-`FewTranslatesNearIntervals`. [Solution.lean](Solution.lean) proves each statement by the library
-theorem. The library and the solution contain no `sorry`, and the theorems depend on no axioms
-other than `propext`, `Classical.choice` and `Quot.sound`.
+[Challenge.lean](LargeSumsetsFromSubsetsPalomar/Challenge.lean) states these six results under
+the library names with a prime, with `sorry` placeholders, in terms of Mathlib alone.
+[Solution.lean](LargeSumsetsFromSubsetsPalomar/Solution.lean) proves each statement by the
+library theorem. The library and the solution contain no `sorry`, and the theorems depend on no
+axioms other than `propext`, `Classical.choice` and `Quot.sound`.
 
 The library has further statements. The main ones are the following.
 
@@ -110,14 +95,21 @@ The library has further statements. The main ones are the following.
 | `exists_subset_two_mul_card_le_card_add_sdiff`, `exists_subsets_min_le_card_biUnion_add_sdiff` | Lemma 10 and Corollary 11 of the paper |
 | `exists_lt_disjoint_image_add_arithProg` | Lemma 12 of the paper, for one point |
 | `exists_eq_arithProg_one_of_card_inter_arithProg_one` | An arithmetic progression of $\mathbb{Z}_p$ with at most $11L/10$ elements sharing $9L/10$ points with an interval of length $L$, $20 \le L \le p / 8$, is an interval |
-| `exists_fewTranslates_int` | `FewTranslatesNearIntervals` for intervals of integers |
+| `exists_subset_arithProg_card_sdiff_le_of_card_add_le` | Theorem 4 of the paper, from Corollary 24 of *Large sumsets from small subsets* |
+| `exists_fewTranslatesInt` | Theorem 5 of the paper for intervals of integers, with the subset of $B$ depending on $A$, from Theorem 31 of *Large sumsets from small subsets* |
 | `mul_expect_card_add_le_expect_powersetCard` | Uniformly random $c$-subsets dominate $c/2$ independent samples from a subset containing all but a $\mu$ proportion, up to the factor $(1 - 2\mu)^2$ |
 
-The proofs of Theorems 1, 6 and 8 follow the paper. Several steps that the paper states without
-proof are proved here: the comparison of random subsets with independent samples, the fact that a
-progression close to an interval is an interval, the reduction of the residue classes in the proof
-of Theorem 8 to sets containing the endpoints of their intervals, as Theorem 5 requires, and the
-passage from intervals of $\mathbb{Z}_p$ to intervals of integers.
+The proofs of Theorems 1 and 6 follow the paper. The proof of Theorem 8 follows the paper except
+in the sample of $Y$: the paper takes, in each dense residue class $y$ of $Y$, a random member of a
+family of subsets given by Theorem 5 that works for every class of $X$ at once. Here, for each
+dense class $x$ of $X$ in the sample and each dense class $y$ of $Y$, the subset of the class $y$
+given by the weaker form of Theorem 5 for the class $x$ is added to the sample of $Y$. With $t$
+random classes of $X$ besides the largest one, the sample of $Y$ grows by the factor $t + 1$,
+which only changes the constant $c$. Several steps that the paper states without proof are proved
+here: the comparison of random subsets with independent samples, the fact that a progression close
+to an interval is an interval, the reduction of the residue classes in the proof of Theorem 8 to
+sets containing the endpoints of their intervals, as Theorem 5 requires, and the passage from
+intervals of $\mathbb{Z}_p$ to intervals of integers.
 The paper's proof of Theorem 2 iterates Shao's theorem on a decreasing sequence of pairs of
 subsets. Here one pair of subsets minimizes `min |X + Y| (D |X|) (D |Y|) + Λ (|A \ X| + |B \ Y|)`;
 if the conclusion failed for it, the popular sums would be few, and the cleanup theorem, or an
@@ -136,31 +128,35 @@ Mathlib, so the constants of Theorems 2 and 5 are of tower type.
 | `ArithmeticProgression.lean` | Arithmetic progressions and intervals of `ZMod p` |
 | `ArithmeticProgression/NearInterval.lean` | Progressions close to an interval |
 | `SubsetSampling.lean` | Random subsets against independent samples |
-| `ZModStability.lean` | `CauchyDavenportStability` and Theorem 6 |
-| `IntervalSumsets/FewTranslates.lean` | `FewTranslatesNearIntervals` and its form for integers |
-| `IntervalSumsets/Fibres.lean`, `IntervalSumsets/Sampling.lean` | Residue classes and the samples of Theorem 8 |
+| `ZModStability.lean` | Theorem 4 and Theorem 6 |
+| `IntervalSumsets/FewTranslates.lean` | Theorem 5 for intervals of integers, with the subset depending on $A$ |
+| `IntervalSumsets/Fibers.lean`, `IntervalSumsets/Sampling.lean` | Residue classes and the samples of Theorem 8 |
 | `IntervalSumsets.lean` | Theorem 8 |
 | `IntervalEnds.lean` | Lemma 9 |
 | `Stickout.lean` | Lemma 10 and Corollary 11 |
 | `IntervalCovering.lean` | Lemma 12 |
 | `CauchyDavenportBound.lean` | Theorem 1 |
 
+| Other files | Contents |
+| --- | --- |
+| `LargeSumsetsFromSubsetsPalomar/Challenge.lean`, `LargeSumsetsFromSubsetsPalomar/Solution.lean` | The statements with `sorry` and their proofs from the library |
+| `simplified_proof.tex`, `simplified_proof.pdf` | A note on the proof of Theorem 8 from the weaker form of Theorem 5 |
+
 [formalization.yaml](formalization.yaml) records the sources, the differences from them, the
 scope, and the use of AI coding agents.
 
 ## Verification
 
-`Challenge.lean` imports only Mathlib. It defines `CauchyDavenportStability` and
-`FewTranslatesNearIntervals`, with the same values as the library, and states
+`Challenge.lean` imports only Mathlib, defines nothing, and states
 `exists_forall_exists_subset_min_lt_expect_card_add'`,
 `exists_forall_exists_subset_card_sdiff_le_forall_add_ne'`,
 `exists_forall_exists_subset_card_sdiff_le_card_add_le'`,
 `exists_arithProg_card_symmDiff_le_of_expect_card_add_le'`,
 `exists_subset_card_eq_card_add_card_sub_one_le_card_add_of_subset_image_range'` and
 `exists_subset_card_eq_card_add_card_sub_one_le_card_add'` with `sorry`. `comparator.json` names
-these six theorems, no definition holes, so the two definitions are compared in full, `Challenge`
-and `Solution` as the modules to compare, and `propext`, `Classical.choice` and `Quot.sound` as
-the permitted axioms.
+these six theorems, no definition holes, `LargeSumsetsFromSubsetsPalomar.Challenge` and
+`LargeSumsetsFromSubsetsPalomar.Solution` as the modules to compare, and `propext`,
+`Classical.choice` and `Quot.sound` as the permitted axioms.
 
 ## Build
 
@@ -172,8 +168,8 @@ lake exe cache get
 lake build
 ```
 
-The default build includes the library, challenge, and solution. The `sorry` warnings from
-`Challenge.lean` are expected.
+The default build includes the library and the solution. `lake build Challenge` builds the
+statements; its `sorry` warnings are expected.
 
 CI also runs `scripts/check-lean-sources.py`, `scripts/validate-formalization.rb` and
 `scripts/verify-comparator.sh`. The last one needs Linux with `bwrap`.

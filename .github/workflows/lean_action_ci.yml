@@ -34,6 +34,9 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           build: false
+      - name: Build the compared modules
+        # `Challenge` is not a default target, so it is built by name.
+        run: lake build Challenge Solution
       - name: Install bubblewrap for lake comparator's sandbox
         # Ubuntu restricts unprivileged user namespaces through AppArmor, which `bwrap` needs.
         run: |

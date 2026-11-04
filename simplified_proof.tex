@@ -1,0 +1,288 @@
+\documentclass[11pt]{amsart}
+
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage[margin=1.1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem*{theorem*}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\theoremstyle{remark}
+\newtheorem*{remark}{Remark}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\E}{\mathbb{E}}
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+\title[Theorem 8 from a weaker form of Theorem 5]{Large sumsets from medium-sized subsets:\\
+Theorem 8 from a weaker form of Theorem 5}
+\author{Gabriel Dahia}
+\date{}
+
+\begin{document}
+
+\begin{abstract}
+Bollobás, Leader and Tiba prove Theorem 1 of \emph{Large sumsets from medium-sized subsets} from
+two results that they quote: Theorem 4, a stability form of the Cauchy--Davenport theorem, and
+Theorem 5, Theorem 31 of their paper \emph{Large sumsets from small subsets}. Theorem 5 gives a
+family of bounded subsets of a set $B$ that works on average for every set $A$ close to an
+interval. We show that the proof of Theorem 8, and hence of Theorem 1, goes through with a weaker
+statement, in which a single bounded subset of $B$ is chosen for each set $A$. Only the sample of
+$Y$ in the proof of Theorem 8 changes, and the constant grows by a bounded factor. This is the
+route followed by the Lean formalization.
+\end{abstract}
+
+\maketitle
+
+\section{Notation}
+
+For finite sets $A$ and $B$ of an abelian group, $A + B = \{a + b : a \in A,\ b \in B\}$ and
+$\abs{A}$ is the number of elements of $A$. We write $A \mathbin{\triangle} B$ for the symmetric
+difference, $\Z_p$ for the integers modulo a prime $p$, and $[a, b)$ for the set of integers $u$
+with $a \le u < b$. An interval of $\Z_p$ with $m$ elements is a set
+$\{x, x + 1, \dots, x + m - 1\}$. Theorem numbers refer to \emph{Large sumsets from
+medium-sized subsets} unless stated otherwise; ``the small paper'' is \emph{Large sumsets from
+small subsets}.
+
+For $d \ge 1$, a residue $r \in \Z_d$ and a finite set $S \subseteq \Z$, the class of $S$ at $r$ is
+$S_r = \{s \in S : s \equiv r \pmod d\}$. For sets $S, T \subseteq \Z$ and $z \in \Z_d$,
+\begin{equation}\label{eq:classes}
+  (S + T)_z = \bigcup_{x + y = z} (S_x + T_y),
+  \qquad
+  \abs{S + T} = \sum_{z \in \Z_d} \abs{(S + T)_z}.
+\end{equation}
+If $\bar x$ and $\bar y$ are fixed representatives of $x$ and $y$, the maps
+$s \mapsto (s - \bar x)/d$ on $S_x$ and $s \mapsto (s - \bar y)/d$ on $T_y$ are injective and
+$\abs{S_x + T_y}$ is the size of the sumset of the images. The class at $r$ of an interval of
+length $m$ is mapped onto an interval of length between $\floor{m/d}$ and $\floor{m/d} + 1$, so
+the classes of a set close to an interval are again sets of integers close to intervals.
+
+\section{Theorems 4 and 5}
+
+Theorem 4 of the paper is the following statement. It is Corollary 24 of the small paper, which
+the formalization of the small paper proves.
+
+\begin{theorem*}[Theorem 4]
+For $\beta, \gamma > 0$ there is $\varepsilon > 0$ with the following property. Let
+$A, B \subseteq \Z_p$ have at least two elements, with $\abs{A} + \abs{B} \le (1 - \beta) p$ and
+$\abs{A + B} \le \abs{A} + \abs{B} - 1 + \varepsilon \min(\abs{A}, \abs{B})$. Then $A$ and $B$
+are contained in arithmetic progressions $P$ and $Q$ with the same common difference such that
+$\abs{P \setminus A}, \abs{Q \setminus B} \le \gamma \min(\abs{A}, \abs{B})$.
+\end{theorem*}
+
+Theorems 1 and 6 use Theorem 4 exactly as stated, so nothing changes there. Theorem 5 is Theorem
+31 of the small paper.
+
+\begin{theorem*}[Theorem 5]
+For $\beta > 0$ there is $\gamma > 0$ such that for $\alpha > 0$ there is $c$ with the following
+property. Let $I$ and $J = \{y, \dots, y + n - 1\}$ be intervals of $\Z_p$ with $m$ and $n$
+elements, $\alpha n \le m \le \alpha^{-1} n$ and $m + n \le (1 - \beta) p$, and let
+$B \subseteq J$ contain $y$ and $y + n - 1$ and miss at most $\gamma \min(m, n)$ points of $J$.
+Then there is a family $\mathcal F$ of subsets of $B$ with at most $c$ elements each such that
+every $A \subseteq \Z_p$ with $\abs{A \mathbin{\triangle} I} \le \gamma \min(m, n)$ satisfies
+\[
+  \E_{F \in \mathcal F} \abs{A + F} \ge \abs{A} + \abs{B} - 1 .
+\]
+\end{theorem*}
+
+The point of Theorem 5 is that $\mathcal F$ depends on $B$ but not on $A$. The formalization of
+the small paper proves the following weaker statement, which is the form used there for Theorem
+27 of the small paper. We state it for intervals of integers, the setting of the proof of
+Theorem 8.
+
+\begin{theorem}[weak form of Theorem 5]\label{thm:weak5}
+Let $\gamma = 1/1600$. For $\alpha > 0$ there is $c$ with the following property. Let
+$I = [x, x + m)$ and $J = [y, y + n)$ with $\alpha n \le m \le \alpha^{-1} n$, let $B \subseteq J$
+contain $y$ and $y + n - 1$ with $\abs{J \setminus B} \le \gamma \min(m, n)$, and let
+$A \subseteq \Z$ be finite with $\abs{A \mathbin{\triangle} I} \le \gamma \min(m, n)$. Then there
+is $F \subseteq B$ with $\abs{F} \le c$ and
+\[
+  \abs{A + F} \ge \abs{A} + \abs{B} - 1 .
+\]
+\end{theorem}
+
+Theorem 5 implies the analogous statement in $\Z_p$, since some member of $\mathcal F$ is at least
+the average. The difference is the order of the quantifiers: in Theorem~\ref{thm:weak5} the set
+$F$ depends on $A$.
+
+\begin{proof}[Proof of Theorem~\ref{thm:weak5} from the small paper]
+Put $\mu = \min(m, n)$. Since $\abs{A \mathbin{\triangle} I}$ and $\abs{J \setminus B}$ are at most
+$\gamma \mu$, we have $m \le \abs{A} + \gamma\mu$, $n \le \abs{B} + \gamma\mu$,
+$\mu / 2 \le \min(\abs{A}, \abs{B})$ and therefore
+$\gamma \mu \le \delta \min(\abs{A}, \abs{B})$ with $\delta = 1/800$. Let
+$\alpha' = \min(\alpha, 1)/2$, so that $\alpha' \abs{B} \le \min(\abs{A}, \abs{B})$, and let
+$c = \ceil{64/\alpha'}^2 + 2\ceil{64/\alpha'} + 10$.
+
+If $\abs{B} \le c$, take $F = B$: the Cauchy--Davenport inequality in $\Z$ gives
+$\abs{A + B} \ge \abs{A} + \abs{B} - 1$. Otherwise $\abs{A}, \abs{B} \ge 2$. Choose $R$ with
+$A \subseteq [x - R, x + m + R)$ and a prime $q > 2(\abs{A} + \abs{B} + m + n + 2R) + 1$.
+Reduction modulo $q$ is injective on $[x - R, x + m + R)$, on $J$ and on
+$[x + y - R, x + y + m + n + R) \supseteq A + J$, so it preserves all the sizes above, maps $I$
+and $J$ to intervals of $\Z_q$, and gives $\abs{A} + \abs{B} \le q/2$. The form of Theorem 31
+proved in the small paper, applied in $\Z_q$ with $\beta = 1/2$, $\delta = 1/800$ and $\alpha'$,
+gives $F \subseteq B$ with $\abs{F} \le c$ and $\abs{A} + n \le \abs{A + F} + 1$. As
+$n \ge \abs{B}$, this is the claim.
+\end{proof}
+
+\section{Theorem 8}
+
+\begin{theorem*}[Theorem 8]
+There is $\gamma > 0$ such that for $\alpha > 0$ there is $c$ with the following property. Let
+$X \subseteq I$ and $Y \subseteq J$, where $I$ and $J$ are intervals of $\Z$ (or of $\Z_p$, with
+$m + n \le p$) with $m$ and $n$ elements, $\alpha n \le m \le \alpha^{-1} n$ and
+$\abs{I \setminus X}, \abs{J \setminus Y} \le \gamma \min(m, n)$. If
+$1 \le c_1 \le \abs{X}$ and $1 \le c_2 \le \abs{Y}$ satisfy
+$c_1 c_2 \ge c \max(\abs{X}, \abs{Y})$, there are $X' \subseteq X$ and $Y' \subseteq Y$ with
+$\abs{X'} = c_1$, $\abs{Y'} = c_2$ and $\abs{X' + Y'} \ge \abs{X} + \abs{Y} - 1$.
+\end{theorem*}
+
+The case of $\Z_p$ follows from the case of $\Z$ by lifting the intervals, since $m + n \le p$. We
+recall the proof of the paper in $\Z$ and indicate the one change.
+
+\subsection*{Setup}
+We may assume $\alpha \le 1$ and $c_2 \le c_1$; the other case is symmetric. Let $\gamma_0 \le 1$
+and $c_0$ be the constants of Theorem~\ref{thm:weak5} for $\alpha/2$, choose $t$ with
+$2^{-t} \le \alpha\gamma_0/128$, and put $\gamma = \gamma_0/256$. Choose $d \ge 1$ of order
+$c_2/(K + 1)$, where $K$ is a constant fixed below, so that
+\[
+  \theta = \frac{\gamma_0 \min(m, n)}{d} \ge 128 .
+\]
+Call a class $X_r$ \emph{dense at level $\lambda$} if it misses at most $\lambda$ points of the
+corresponding class of $I$, and similarly for $Y$. Let $E_X$ and $E_Y'$ be the sets of residues
+whose classes of $X$ and of $Y$ are dense at level $\theta/16$, and let $E \supseteq E_Y'$ be the
+set of residues whose classes of $Y$ are dense at level $\theta/4$. Since $X$ misses at most
+$\gamma \min(m, n) = d\theta/256$ points of $I$, Markov's inequality gives
+$\abs{\Z_d \setminus E_X} \le d/16$, and likewise $\abs{\Z_d \setminus E_Y'} \le d/16$. Let
+$r_0$ be a residue with $\abs{X_{r_0}}$ largest; then $r_0 \in E_X$. Every class has at most
+$m/d + 2$ or $n/d + 2$ elements, and a dense class at least $m/d - 2 - \theta/16$ or
+$n/d - 2 - \theta/16$. Hence, for $x \in E_X$, $y \in E_Y'$ and $y' \notin E$,
+\begin{equation}\label{eq:gain}
+  \abs{X_x} + \abs{Y_y} \ge \abs{X_{r_0}} + \abs{Y_{y'}} + g,
+  \qquad g = \theta/16 ,
+\end{equation}
+because $\theta \ge 128$.
+
+\subsection*{The subsets given by Theorem 5}
+Let $x \in E_X$ and $y \in E$. After the rescaling of Section~1, $Y_y$ lies in an interval of
+length about $n/d$ whose endpoints it contains and of which it misses at most $\theta/4$ points,
+and $X_x$ differs from an interval of length about $m/d$ in at most $\theta/16 + O(1)$ points.
+(The paper's Theorem 5 needs the endpoints of $J$ in $B$; a dense class is first shrunk to the
+interval between its least and largest elements, which changes the length by at most $\theta/4$.)
+The lengths satisfy $\tfrac{\alpha}{2}\nu \le \mu \le (\tfrac{\alpha}{2})^{-1}\nu$ and
+$\theta/4 \le \gamma_0 \min(\mu, \nu)$, where $\mu$ and $\nu$ are the two lengths. So
+Theorem~\ref{thm:weak5} gives a set
+\[
+  G(x, y) \subseteq Y_y, \qquad \abs{G(x, y)} \le c_0, \qquad
+  \abs{X_x + G(x, y)} \ge \abs{X_x} + \abs{Y_y} - 1 .
+\]
+For the other pairs put $G(x, y) = \emptyset$.
+
+The paper uses Theorem 5 here to get, for each $y \in E$, a family $\mathcal F_y$ of subsets of
+$Y_y$ that works on average for every $x \in E_X$ at once, and samples one member of each
+$\mathcal F_y$, independently of the sample of $X$. Theorem~\ref{thm:weak5} gives no such family.
+Instead, the sample of $Y$ below is built from the sample of $X$.
+
+\subsection*{The samples}
+Let $\xi = (\xi_1, \dots, \xi_t)$ be uniform in $E_X^t$ and put
+$S(\xi) = \{r_0, \xi_1, \dots, \xi_t\} \subseteq \Z_d$. The samples are
+\[
+  X_\xi = \bigcup_{x \in S(\xi)} X_x ,
+  \qquad
+  Y_\xi = \bigcup_{y \in E}\ \bigcup_{x \in S(\xi)} G(x, y) .
+\]
+The paper's sample of $X$ is the same. In the paper, the part of the sample of $Y$ in the class
+$y$ is one random member of $\mathcal F_y$; here it is the union of the sets $G(x, y)$ over the
+$t + 1$ classes $x$ of the sample of $X$. Thus
+\[
+  \abs{X_\xi} \le (t + 1)\Bigl(\frac{m}{d} + 2\Bigr),
+  \qquad
+  \abs{Y_\xi} \le d\,(t + 1)\,c_0 ,
+\]
+where the paper has $d c_0$ in the second bound.
+
+\begin{lemma}[Lemma F\&G, adapted]\label{lem:fg}
+$\E_\xi \abs{X_\xi + Y_\xi} \ge \abs{X} + \abs{Y} - d$.
+\end{lemma}
+
+\begin{proof}
+By \eqref{eq:classes}, $\abs{X_\xi + Y_\xi} = \sum_z \abs{(X_\xi + Y_\xi)_z}$. Fix $z \in \Z_d$ and
+put $s_z = \abs{X_{r_0}} + \abs{Y_{z - r_0}}$. We show
+\begin{equation}\label{eq:class}
+  \E_\xi \abs{(X_\xi + Y_\xi)_z} \ge s_z - 1 .
+\end{equation}
+The only property of $Y_\xi$ used is that, for $x \in S(\xi)$ and $y \in E$ with $x + y = z$,
+\begin{equation}\label{eq:pair}
+  \abs{(X_\xi + Y_\xi)_z} \ge \abs{X_x + G(x, y)} ,
+\end{equation}
+which holds by \eqref{eq:classes} because $X_x \subseteq X_\xi$ and $G(x, y) \subseteq Y_\xi$.
+This is where the sample of $Y$ must contain $G(x, y)$ for the classes $x$ of the sample of $X$.
+
+If $z - r_0 \in E$, then \eqref{eq:pair} with $x = r_0 \in S(\xi)$ and $y = z - r_0$ gives
+$\abs{(X_\xi + Y_\xi)_z} \ge s_z - 1$ for every $\xi$.
+
+If $z - r_0 \notin E$, call $\xi$ good when $z - \xi_i \in E_Y'$ for some $i$. For good $\xi$,
+\eqref{eq:pair} with $x = \xi_i$ and $y = z - \xi_i$, together with \eqref{eq:gain} for
+$y' = z - r_0$, gives
+\[
+  \abs{(X_\xi + Y_\xi)_z} \ge \abs{X_{\xi_i}} + \abs{Y_{z - \xi_i}} - 1 \ge s_z + g - 1 .
+\]
+The residues $x \in E_X$ with $z - x \notin E_Y'$ number at most
+$\abs{\Z_d \setminus E_Y'} \le d/16 \le \abs{E_X}/2$, so $\xi$ is bad with probability at most
+$\varepsilon = 2^{-t}$. Hence
+$\E_\xi \abs{(X_\xi + Y_\xi)_z} \ge (1 - \varepsilon)(s_z + g - 1)$, which is at least $s_z - 1$
+as soon as $\varepsilon s_z \le (1 - \varepsilon) g$. This holds because
+$\alpha s_z \le 4\min(m, n)/d$ and $\varepsilon \le \alpha\gamma_0/128$, which give
+$\varepsilon s_z \le \theta/32 \le (1 - \varepsilon)\theta/16$.
+
+Summing \eqref{eq:class} over $z$, and using $\abs{X} \le d \abs{X_{r_0}}$,
+\[
+  \E_\xi \abs{X_\xi + Y_\xi}
+  \ge \sum_z \bigl(\abs{X_{r_0}} + \abs{Y_{z - r_0}} - 1\bigr)
+  = d \abs{X_{r_0}} + \abs{Y} - d
+  \ge \abs{X} + \abs{Y} - d . \qedhere
+\]
+\end{proof}
+
+The proof of the paper uses \eqref{eq:pair} in the same two cases, with a random member of
+$\mathcal F_{z - r_0}$ or $\mathcal F_{z - \xi_i}$ in place of $G(x, y)$, and takes the expectation
+over these members as well. Since $x$ is $r_0$ in the first case and $\xi_i$ in the second, a set
+$G(x, y)$ is needed only for $x \in S(\xi)$, and this is what the union over $S(\xi)$ provides.
+
+\subsection*{Completion}
+Fix $\xi$ with $\abs{X_\xi + Y_\xi} \ge \abs{X} + \abs{Y} - d$. As in the paper, adding at most
+$d - 1$ further elements of $X$ to $X_\xi$ and of $Y$ to $Y_\xi$ raises the size of the sumset to
+$\abs{X} + \abs{Y} - 1$, and enlarging the two sets to $c_1$ and $c_2$ elements keeps this bound.
+This requires
+\[
+  (t + 1)\Bigl(\frac{m}{d} + 2\Bigr) + d - 1 \le c_1 ,
+  \qquad
+  d\,(t + 1)\,c_0 + d - 1 \le c_2 .
+\]
+With $K = \max\bigl((t + 1)c_0, \ceil{128/\gamma_0}\bigr)$, $d = \floor{c_2/(K + 1)}$ and
+\[
+  c = 16\,(t + 1)(K + 1),
+\]
+the hypothesis $c_1 c_2 \ge c \max(\abs{X}, \abs{Y})$ gives both inequalities and
+$\theta \ge 128$. With Theorem 5 and the paper's sample of $Y$, the same argument works with
+$K = \max\bigl(c_0, \ceil{128/\gamma_0}\bigr)$; replacing $c_0$ by $(t + 1)c_0$ is the only
+change in the constants.
+
+\section{Summary}
+
+\begin{itemize}
+\item Theorem 4 is Corollary 24 of the small paper and is used unchanged in Theorems 1 and 6.
+\item Theorem 5 is replaced by Theorem~\ref{thm:weak5}, in which the bounded subset of $B$ may
+  depend on $A$. It follows from the form of Theorem 31 proved in the small paper by reduction
+  modulo a large prime, with the Cauchy--Davenport inequality in $\Z$ when $B$ is small.
+\item In the proof of Theorem 8 the sample of $Y$ is the union of the sets $G(x, y)$ over the
+  classes $x$ of the sample of $X$ and the dense classes $y$ of $Y$. The proof of Lemma F\&G is
+  otherwise unchanged; the sample of $Y$ is $t + 1$ times larger, and the constant of Theorem 8
+  is $16(t + 1)(K + 1)$ with $K = \max\bigl((t + 1)c_0, \ceil{128/\gamma_0}\bigr)$.
+\item Theorem 1 follows from Theorems 4, 6 and 8 as in the paper.
+\end{itemize}
+
+\end{document}

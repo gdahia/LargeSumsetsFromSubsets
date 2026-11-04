@@ -1,6 +1,6 @@
 {
-  "challenge_module": "Challenge",
-  "solution_module": "Solution",
+  "challenge_module": "LargeSumsetsFromSubsetsPalomar.Challenge",
+  "solution_module": "LargeSumsetsFromSubsetsPalomar.Solution",
   "theorem_names": [
     "LargeSumsetsFromSubsets.exists_forall_exists_subset_min_lt_expect_card_add'",
     "LargeSumsetsFromSubsets.exists_forall_exists_subset_card_sdiff_le_forall_add_ne'",

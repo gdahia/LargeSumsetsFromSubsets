@@ -10,23 +10,21 @@ public import Mathlib.Combinatorics.SimpleGraph.Triangle.Tripartite
 /-!
 # The tripartite graph attached to the equation `a + b = c`
 
-Following Král, Serra and Vena, we attach to three subsets `A`, `B`, `C` of an abelian group `G`
-and to a finite ambient set `W` a tripartite graph on `W ⊕ W ⊕ W`. Its triangle indices are the
-triples `(u, v, w)` of elements of `W` with
-`v - u ∈ A`, `w - v ∈ B` and `w - u ∈ C`,
-that is, the triples `(u, u + a, u + c)` with `a ∈ A`, `b ∈ B`, `c ∈ C` and `a + b = c`. Two
-vertices are joined exactly when they both belong to some triangle index, so an edge between the
-first and the second part carries a label in `A`, an edge between the second and the third part a
-label in `B`, and an edge between the first and the third part a label in `C`.
+Following Král, Serra and Vena, we attach to three subsets `A`, `B`, `C` of an abelian group `G` and
+to a finite ambient set `W` a tripartite graph on `W ⊕ W ⊕ W`. Its triangle indices are the triples
+`(u, v, w)` of elements of `W` with `v - u ∈ A`, `w - v ∈ B` and `w - u ∈ C`, that is, the triples
+`(u, u + a, u + c)` with `a ∈ A`, `b ∈ B`, `c ∈ C` and `a + b = c`. Two vertices are joined exactly
+when they both belong to some triangle index, so an edge between the first and the second part
+carries a label in `A`, an edge between the second and the third part a label in `B`, and an edge
+between the first and the third part a label in `C`.
 
 The two facts we need are that every triangle of the graph is one of the explicit ones,
 `ArithmeticRemoval.card_cliqueFinset_le`, and that there are at most `#W` triangle indices per
 solution of `a + b = c`, `ArithmeticRemoval.card_triangleIndices_le`.
 
-Note that the graph is genuinely tripartite by construction: the three parts are copies of `W`
-sitting in a sum type, so all triangles are transversal and each edge knows which two parts it
-joins. This is why the ordinary, uncoloured triangle removal lemma suffices, with no need for a
-directed or coloured variant.
+The graph is tripartite by construction: the three parts are copies of `W` sitting in a sum type, so
+all triangles are transversal and each edge knows which two parts it joins. This is why the
+ordinary, uncolored triangle removal lemma suffices, with no need for a directed or colored variant.
 -/
 
 @[expose] public section
@@ -76,17 +74,17 @@ lemma adj_in₁_in₂ {u v w : ↥W} (h : (u, v, w) ∈ triangleIndices W A B C)
 lemma adj_in₀_in₂ {u v w : ↥W} (h : (u, v, w) ∈ triangleIndices W A B C) :
     (tripartiteGraph W A B C).Adj (in₀ u) (in₂ w) := Rel.in₀₂ h
 
-/-- An edge between the first and the second part is labelled by an element of `A`. -/
+/-- An edge between the first and the second part is labeled by an element of `A`. -/
 lemma sub_mem_of_adj_in₀_in₁ {u v : ↥W} (h : (tripartiteGraph W A B C).Adj (in₀ u) (in₁ v)) :
     (v : G) - u ∈ A := by
   grind [Graph.in₀₁_iff, mem_triangleIndices]
 
-/-- An edge between the second and the third part is labelled by an element of `B`. -/
+/-- An edge between the second and the third part is labeled by an element of `B`. -/
 lemma sub_mem_of_adj_in₁_in₂ {v w : ↥W} (h : (tripartiteGraph W A B C).Adj (in₁ v) (in₂ w)) :
     (w : G) - v ∈ B := by
   grind [Graph.in₁₂_iff, mem_triangleIndices]
 
-/-- An edge between the first and the third part is labelled by an element of `C`. -/
+/-- An edge between the first and the third part is labeled by an element of `C`. -/
 lemma sub_mem_of_adj_in₀_in₂ {u w : ↥W} (h : (tripartiteGraph W A B C).Adj (in₀ u) (in₂ w)) :
     (w : G) - u ∈ C := by
   grind [Graph.in₀₂_iff, mem_triangleIndices]
@@ -109,8 +107,7 @@ so there are at most `#W` triangle indices per solution. -/
 lemma card_triangleIndices_le :
     #(triangleIndices W A B C) ≤ #W * #(sumTriples A B C) := by
   rw [← card_product]
-  apply card_le_card_of_injOn
-    (fun x ↦ ((x.1 : G), ((x.2.1 : G) - x.1, (x.2.2 : G) - x.2.1, (x.2.2 : G) - x.1)))
+  apply card_le_card_of_injOn fun (u, v, w) ↦ ((u : G), ((v : G) - u, (w : G) - v, (w : G) - u))
   · rintro ⟨u, v, w⟩ hx
     simp_all
   · rintro ⟨u, v, w⟩ - ⟨u', v', w'⟩ - h

@@ -10,18 +10,20 @@ public import LargeSumsetsFromSubsets.ArithmeticRemoval
 /-!
 # The constants of the Bollobás–Leader–Tiba argument
 
-For a doubling parameter `K ≥ 1` and an error `0 < ε ≤ 1` the proof of the medium-sized-subset
-theorem uses six constants, defined here together with the handful of inequalities relating them:
+For a doubling parameter `K ≥ 1` and an error `0 < ε ≤ 1`, the proof of the medium-sized-subset
+theorem uses six constants. This file defines them and proves the inequalities relating them. Each
+constant depends only on the previous ones, so the definitions are not circular.
 
-* `bltCap K = 100 * K ^ 3` caps the sumset term of the potential function;
-* `bltPenalty K ε` is the price of deleting one element;
-* `bltRho K ε` is the proportion of elements the cleanup steps may delete;
-* `bltDelta K ε` is the proportion of pairs allowed to have an unpopular sum; it is small enough
-  for the arithmetic removal lemma at the parameters produced by `bltCap` and `bltRho`;
-* `bltAlpha K ε` is the popularity threshold;
-* `bltSampleConst K ε` is the constant of the theorem itself.
+## Main definitions
 
-Each constant depends only on the previous ones, so the definitions are not circular.
+* `LargeSumsetsFromSubsets.bltCap K = 100 * K ^ 3` caps the sumset term of the potential function.
+* `LargeSumsetsFromSubsets.bltPenalty K ε` is the price of deleting one element.
+* `LargeSumsetsFromSubsets.bltRho K ε` is the proportion of elements the cleanup steps may delete.
+* `LargeSumsetsFromSubsets.bltDelta K ε` is the proportion of pairs allowed to have an unpopular
+  sum. It is small enough for the arithmetic removal lemma at the parameters produced by `bltCap`
+  and `bltRho`.
+* `LargeSumsetsFromSubsets.bltAlpha K ε` is the popularity threshold.
+* `LargeSumsetsFromSubsets.bltSampleConst K ε` is the constant of the theorem itself.
 -/
 
 @[expose] public section
@@ -76,25 +78,22 @@ lemma bltRho_le (hK : 1 ≤ K) (hε : 0 < ε) (hε1 : ε ≤ 1) : bltRho K ε �
   rw [div_le_div_iff₀ (by nlinarith [hundred_le_bltCap hK]) (by norm_num)]
   nlinarith [hundred_le_bltCap hK]
 
-/-- The doubling constant handed to the arithmetic removal lemma is nonnegative. -/
-private lemma removalDoubling_nonneg (hK : 1 ≤ K) : (0 : ℝ) ≤ 16 * bltCap K ^ 7 :=
-  mul_nonneg (by norm_num) (pow_nonneg (bltCap_pos hK).le 7)
-
 /-- The density parameter is positive. -/
 lemma bltDelta_pos (hK : 1 ≤ K) (hε : 0 < ε) : 0 < bltDelta K ε := by
   unfold bltDelta
   apply lt_min (lt_min (by norm_num) (div_pos (bltRho_pos hK hε) (by norm_num)))
-  exact ArithmeticRemoval.removalConst_pos (removalDoubling_nonneg hK)
+  exact ArithmeticRemoval.removalConst_pos
+    (mul_nonneg (by norm_num) (pow_nonneg (bltCap_pos hK).le 7))
     (div_pos (bltRho_pos hK hε) (bltCap_pos hK))
 
 /-- The density parameter is at most `1 / 2`. -/
 lemma bltDelta_le_half : bltDelta K ε ≤ 1 / 2 :=
-  (min_le_left _ _).trans (min_le_left _ _)
+  min_le_of_left_le (min_le_left _ _)
 
 /-- The density parameter is at most an eighth of the deletion proportion. -/
 lemma eight_mul_bltDelta_le_bltRho : 8 * bltDelta K ε ≤ bltRho K ε := by
-  have : bltDelta K ε ≤ bltRho K ε / 8 := (min_le_left _ _).trans (min_le_right _ _)
-  linarith
+  rw [← le_div_iff₀' (by norm_num)]
+  exact min_le_of_left_le (min_le_right _ _)
 
 /-- The density parameter is below the threshold of the arithmetic removal lemma. -/
 lemma bltDelta_le_removalConst :
