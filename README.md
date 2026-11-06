@@ -1,38 +1,47 @@
 # Large sumsets from medium-sized subsets
 
-Lean 4 formalization of the main results of Béla Bollobás, Imre Leader and Marius Tiba,
-[*Large sumsets from medium-sized subsets*](https://arxiv.org/abs/2206.09366). In
-$\mathbb{Z}_p$, subsets with $c_1$ and $c_2$ elements of sets $A$ and $B$ of comparable sizes reach
-the Cauchy–Davenport bound $|A| + |B| - 1$ as soon as $c_1 c_2 \ge c \max(|A|, |B|)$ (Theorem 1).
-In an abelian group, a few random points of large subsets $A_0 \subseteq A$ and $B_0 \subseteq B$
-already have a sumset of almost the size of $A_0 + B_0$ (Theorem 2).
+Lean 4 formalization of the main results of Béla Bollobás, Imre Leader and Marius Tiba, [*Large
+sumsets from medium-sized subsets*](https://arxiv.org/abs/2206.09366). In $\mathbb{Z}\_p$, subsets
+with $c_1$ and $c_2$ elements of sets $A$ and $B$ of comparable sizes reach the Cauchy–Davenport
+bound $\left\lvert A\right\rvert + \left\lvert B\right\rvert - 1$ as soon as
+$c_1 c_2 \ge c \max(\left\lvert A\right\rvert, \left\lvert B\right\rvert)$ (Theorem 1). In an
+abelian group, a few random points of large subsets $A_0 \subseteq A$ and $B_0 \subseteq B$ already
+have a sumset of almost the size of $A_0 + B_0$ (Theorem 2).
 
-All sets are finite, $|A|$ is the number of elements of $A$, and $\mathbb{Z}_p$ is `ZMod p` for a
-prime $p$. Theorem numbers are those of the paper, and all names below are in the namespace
-`LargeSumsetsFromSubsets`. The results that the paper quotes from the same authors'
-[*Large sumsets from small subsets*](https://arxiv.org/abs/2204.07559) come from the Lean
-formalization [LargeSumsetsFromSmallSubsets](https://github.com/gdahia/LargeSumsetsFromSmallSubsets),
-a dependency of this project.
+All sets are finite, $\left\lvert A\right\rvert$ is the number of elements of $A$, and
+$\mathbb{Z}\_p$ is `ZMod p` for a prime $p$. Theorem numbers are those of the paper, and all names
+below are in the namespace `LargeSumsetsFromSubsets`. The results that the paper quotes from the
+same authors' [*Large sumsets from small subsets*](https://arxiv.org/abs/2204.07559) come from the
+Lean formalization
+[LargeSumsetsFromSmallSubsets](https://github.com/gdahia/LargeSumsetsFromSmallSubsets), a dependency
+of this project.
 
 ## Results
 
-**Theorem 1** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add`). Let
-$\alpha, \beta > 0$. There is $c > 0$ with the following property. Let
-$A, B \subseteq \mathbb{Z}_p$ be nonempty with $\alpha |B| \le |A| \le \alpha^{-1} |B|$ and
-$|A| + |B| \le (1 - \beta) p$, and let $c_1, c_2$ be integers with $1 \le c_1 \le |A|$ and
-$1 \le c_2 \le |B|$. If $c_1 c_2 \ge c \max(|A|, |B|)$, then there are $A' \subseteq A$ and
-$B' \subseteq B$ with $|A'| = c_1$, $|B'| = c_2$ and
+**Theorem 1** (`exists_subset_card_eq_card_add_card_sub_one_le_card_add`). Let $\alpha, \beta > 0$.
+There is $c > 0$ with the following property. Let $A, B \subseteq \mathbb{Z}\_p$ be nonempty with
+$\alpha \left\lvert B\right\rvert \le \left\lvert A\right\rvert \le \alpha^{-1} \left\lvert B\right\rvert$
+and $\left\lvert A\right\rvert + \left\lvert B\right\rvert \le (1 - \beta) p$, and let $c_1, c_2$ be
+integers with $1 \le c_1 \le \left\lvert A\right\rvert$ and
+$1 \le c_2 \le \left\lvert B\right\rvert$. If
+$c_1 c_2 \ge c \max(\left\lvert A\right\rvert, \left\lvert B\right\rvert)$, then there are
+$A' \subseteq A$ and $B' \subseteq B$ with $\left\lvert A'\right\rvert = c_1$,
+$\left\lvert B'\right\rvert = c_2$ and
 
-$$|A' + B'| \ge |A| + |B| - 1.$$
+$$\left\lvert A' + B'\right\rvert \ge \left\lvert A\right\rvert + \left\lvert B\right\rvert - 1.$$
 
-**Theorem 2** (`exists_forall_exists_subset_min_lt_expect_card_add`). Let
-$\sigma, \varepsilon > 0$. There is $c$ with the following property. Let $A$ and $B$ be nonempty
-subsets of an abelian group and let $c_1, c_2$ be integers with $1 \le c_1 \le |A|$ and
-$1 \le c_2 \le |B|$. If $c_1 c_2 > c \max(|A|, |B|)$, then there are nonempty
-$A_0 \subseteq A$ and $B_0 \subseteq B$ with $|A_0| > (1 - \varepsilon) |A|$,
-$|B_0| > (1 - \varepsilon) |B|$ and
+**Theorem 2** (`exists_forall_exists_subset_min_lt_expect_card_add`). Let $\sigma, \varepsilon > 0$.
+There is $c$ with the following property. Let $A$ and $B$ be nonempty subsets of an abelian group
+and let $c_1, c_2$ be integers with $1 \le c_1 \le \left\lvert A\right\rvert$ and
+$1 \le c_2 \le \left\lvert B\right\rvert$. If
+$c_1 c_2 > c \max(\left\lvert A\right\rvert, \left\lvert B\right\rvert)$, then there are nonempty
+$A_0 \subseteq A$ and $B_0 \subseteq B$ with
+$\left\lvert A_0\right\rvert > (1 - \varepsilon) \left\lvert A\right\rvert$,
+$\left\lvert B_0\right\rvert > (1 - \varepsilon) \left\lvert B\right\rvert$ and
 
-$$\mathbb{E} |A' + B'| > \min\bigl((1 - \varepsilon) |A_0 + B_0|, \sigma |A_0|, \sigma |B_0|\bigr),$$
+$$\mathbb{E} \left\lvert A' + B'\right\rvert >
+\min\bigl((1 - \varepsilon) \left\lvert A_0 + B_0\right\rvert, \sigma \left\lvert A_0\right\rvert,
+\sigma \left\lvert B_0\right\rvert\bigr),$$
 
 where $A'$ and $B'$ are the sets of $c_1$ points of $A_0$ and $c_2$ points of $B_0$ chosen
 independently and uniformly at random, with repetition.
